@@ -1,0 +1,585 @@
+@import url("https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Rubik:ital,wght@0,300..900;1,300..900&display=swap");
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+:root {
+  --radius: 0.625rem;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: #188aec;
+  --primary-foreground: #444445;
+  --secondary: #1d2530;
+  --secondary-foreground: #989898;
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: #727272;
+  --accent-foreground: #a3a3a4;
+  --destructive: #ff0105;
+  --border: #e0e5eb;
+  --input: oklch(0.922 0 0);
+  --ring: #43a047;
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.556 0 0);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+@keyframes vex-gradient-flow {
+  0% {
+    background: linear-gradient(
+        90deg,
+        rgba(217, 59, 191, 0.7) 0%,
+        transparent 15%,
+        transparent 85%,
+        rgba(217, 59, 191, 0.7) 100%
+      ),
+      radial-gradient(
+        ellipse 100% 100% at 50% 50%,
+        #090315 0%,
+        rgba(9, 3, 21, 0.9) 70%,
+        transparent 100%
+      );
+    background-size: 100% 100%, 100% 100%;
+    background-position: 0% 0%, 50% 50%;
+  }
+
+  50% {
+    background: linear-gradient(
+        90deg,
+        rgba(217, 59, 191, 0.8) 0%,
+        transparent 12%,
+        transparent 88%,
+        rgba(217, 59, 191, 0.8) 100%
+      ),
+      radial-gradient(
+        ellipse 100% 100% at 50% 50%,
+        #090315 0%,
+        rgba(9, 3, 21, 0.9) 70%,
+        transparent 100%
+      );
+    background-size: 100% 100%, 100% 100%;
+    background-position: 0% 0%, 50% 50%;
+  }
+
+  100% {
+    background: linear-gradient(
+        90deg,
+        rgba(217, 59, 191, 0.7) 0%,
+        transparent 15%,
+        transparent 85%,
+        rgba(217, 59, 191, 0.7) 100%
+      ),
+      radial-gradient(
+        ellipse 100% 100% at 50% 50%,
+        #090315 0%,
+        rgba(9, 3, 21, 0.9) 70%,
+        transparent 100%
+      );
+    background-size: 100% 100%, 100% 100%;
+    background-position: 0% 0%, 50% 50%;
+  }
+}
+
+html,
+body {
+  background-color: #ffffff;
+  overscroll-behavior: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+.section-bg {
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: center top;
+}
+
+body {
+  font-family: "Rubik";
+}
+
+.custom-scrollbar {
+  /* Firefox */
+  scrollbar-width: thin;
+  scrollbar-color: #ff70f1 #ff70f126;
+}
+
+/* WebKit browsers */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 2px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #ff70f126;
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #ff70f1;
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  /* you can define a hover variant if you have one,
+     otherwise it will just stay as --primary */
+  background: #ff70f1;
+}
+
+.dashboard-screen {
+  font-family: "Rubik";
+  overflow-x: hidden;
+  scroll-behavior: smooth;
+  position: relative;
+  min-height: 100vh;
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: center;
+  /* or top/left/right/bottom as needed */
+  background-attachment: fixed;
+  /* This makes it fixed */
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* Alternative version with more subtle movement */
+@keyframes vex-gradient-subtle {
+  0%,
+  100% {
+    background-position: 0% 0%, 0% 0%;
+    background-size: 200% 200%, 150% 150%;
+  }
+
+  25% {
+    background-position: 30% 40%, 20% 30%;
+    background-size: 180% 180%, 140% 140%;
+  }
+
+  50% {
+    background-position: 60% 80%, 50% 60%;
+    background-size: 220% 160%, 160% 120%;
+  }
+
+  75% {
+    background-position: 90% 20%, 80% 90%;
+    background-size: 190% 190%, 130% 160%;
+  }
+}
+
+/* If you prefer the subtle version, replace the animation name */
+.dashboard-screen-subtle::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: radial-gradient(
+      ellipse 120% 80% at 70% 20%,
+      #00ddff 0%,
+      #d93bbf 25%,
+      #090315 45%,
+      #5925cb 65%,
+      rgba(144, 54, 180, 0.6) 80%,
+      #ee55d7 100%
+    ),
+    linear-gradient(
+      135deg,
+      #00ddff 0%,
+      rgba(217, 59, 191, 0.8) 30%,
+      rgba(9, 3, 21, 0.9) 50%,
+      rgba(89, 37, 203, 0.7) 70%,
+      #ee55d7 100%
+    );
+  animation: vex-gradient-subtle 25s ease-in-out infinite;
+  z-index: -2;
+  will-change: background-position, background-size;
+}
+
+.vex-sidebar-wrapper {
+  padding: 0.5px;
+}
+
+.vex-sidebar {
+  backdrop-filter: blur(94px);
+  height: 96%;
+}
+
+.vex-sidebar-active-wrapper {
+  /* padding: 0.5px; */
+  background: linear-gradient(180deg, #5c2b65 0%, #1b082a 100%),
+    radial-gradient(
+      63.29% 63.29% at 50% 0%,
+      rgba(255, 112, 241, 0.5) 0%,
+      rgba(255, 112, 241, 0) 100%
+    );
+}
+
+.mobile-active-menu {
+  background: linear-gradient(180deg, #5c2b65 0%, #1b082a 100%),
+    radial-gradient(
+      63.29% 63.29% at 50% 0%,
+      rgba(255, 112, 241, 0.5) 0%,
+      rgba(255, 112, 241, 0) 100%
+    );
+}
+
+.gradient-icon-filter {
+  /* filter: hue-rotate(250deg) saturate(2) brightness(1.2); */
+  color: #ff61e5;
+}
+
+.recharts-wrapper .recharts-surface {
+  overflow: visible;
+}
+
+.recharts-bar-rectangle {
+  filter: none !important;
+  opacity: 1 !important;
+  transition: fill 0.2s ease;
+}
+
+.recharts-active-bar {
+  display: none !important;
+}
+
+.recharts-tooltip-cursor {
+  display: none !important;
+}
+
+.custom-bar:hover {
+  filter: none !important;
+  opacity: 1 !important;
+}
+
+.bg-icon {
+  color: linear-gradient(319.36deg, #7a15d3 10.03%, #ff61e5 79.51%);
+}
+
+/* VEX Component Styles */
+.vex-card {
+  background: linear-gradient(
+    172.07deg,
+    rgba(23, 6, 49, 0.2) 4.86%,
+    rgba(70, 20, 151, 0.2) 93.89%
+  );
+  border: 1px solid;
+  border-image-source: linear-gradient(
+    97.08deg,
+    rgba(255, 112, 241, 0.15) 44.47%,
+    rgba(255, 255, 255, 0.12) 62.26%
+  );
+  /* border-image-slice: 1; */
+  backdrop-filter: blur(94px);
+}
+
+.vex-trading-panel {
+  background: linear-gradient(
+    172.07deg,
+    rgba(23, 6, 49, 0.2) 4.86%,
+    rgba(70, 20, 151, 0.2) 93.89%
+  );
+  backdrop-filter: blur(104px);
+}
+
+.vex-buy-button {
+  background: linear-gradient(
+    285.08deg,
+    rgba(24, 17, 35, 0) 37.09%,
+    #00ddff 91.2%
+  );
+}
+
+.border-gradient {
+  position: relative;
+  border-radius: 30px;
+  border-color: #ff70f126;
+  /* background: #1706311A; */
+  backdrop-filter: blur(94px);
+}
+
+.h-unset {
+  height: unset !important;
+}
+
+.shadow-custom {
+  backdrop-filter: blur(94px);
+}
+
+.backblur {
+  backdrop-filter: blur(24px);
+}
+
+.shadow-custom-large {
+  backdrop-filter: blur(104px);
+}
+
+.border-gradient-end {
+  border-image: radial-gradient(
+    78.53% 5750% at 50% 50%,
+    #3e2f4d 0%,
+    rgba(19, 15, 23, 0) 100%
+  );
+  border-image-slice: 1;
+}
+
+.border-gradient-primary {
+  border-image-slice: 1 !important;
+  border-image: linear-gradient(
+    97.08deg,
+    rgba(255, 112, 241, 0.15) 44.47%,
+    rgba(255, 255, 255, 0.12) 62.26%
+  );
+}
+
+.vex-sell-button {
+  background: linear-gradient(
+    285.08deg,
+    rgba(24, 17, 35, 0) 37.09%,
+    #ff007b 91.2%
+  );
+}
+
+.border-animate {
+  border-color: #ff70f126;
+  animation: borderPulse 6s ease-in-out infinite;
+}
+
+.border-animate-glow {
+  border-color: #ff70f126;
+  animation: borderGlow 4s ease-in-out infinite;
+  box-shadow: 0 0 0 0 rgba(255, 112, 241, 0.1);
+}
+
+@keyframes borderGlow {
+  0%,
+  100% {
+    border-color: #ff70f126;
+    box-shadow: 0 0 0 0 rgba(255, 112, 241, 0.1);
+  }
+
+  50% {
+    border-color: #ff70f1;
+    box-shadow: 0 0 15px 2px rgba(255, 112, 241, 0.3);
+  }
+}
+
+@keyframes borderPulse {
+  0%,
+  100% {
+    border-color: #ff70f126;
+  }
+
+  50% {
+    border-color: #ff70f183;
+  }
+}
+
+@keyframes float-1 {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-15px);
+  }
+}
+
+@keyframes float-2 {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes float-3 {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+.float-1 {
+  animation: float-1 3s ease-in-out infinite;
+}
+
+.float-2 {
+  animation: float-2 3.5s ease-in-out infinite;
+}
+
+.float-3 {
+  animation: float-3 4s ease-in-out infinite;
+}
+
+@keyframes float-diagonal {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+
+  50% {
+    transform: translate(5px, 5px);
+  }
+}
+
+.diagonal-float {
+  animation: float-diagonal 3s ease-in-out infinite;
+}
+
+.bg-mobile {
+  /* min-height: 100vh; */
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: center;
+  /* or top/left/right/bottom as needed */
+  background-attachment: fixed;
+}
+
+@media screen and (max-width: 640px) {
+  .dashboard-screen {
+    overflow-x: auto;
+    scroll-behavior: smooth;
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-position: 48%;
+    /* or top/left/right/bottom as needed */
+    background-attachment: fixed;
+    /* This makes it fixed */
+    min-width: 320px;
+    /* Ensure minimum width for very small screens */
+  }
+
+  .rs-anim-fade {
+    left: 22px !important;
+    z-index: 999;
+  }
+}
+
+@keyframes scroll-left {
+  0% {
+    transform: translateX(0);
+  }
+
+  100% {
+    transform: translateX(-33.333%);
+  }
+}
+
+.smooth-scroll {
+  animation: scroll-left 20s linear infinite;
+  will-change: transform;
+}
+
+.smooth-scroll:hover {
+  animation-play-state: running;
+}

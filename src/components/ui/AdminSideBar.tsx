@@ -1,0 +1,95 @@
+import { LogoutButton } from "@/components/auth/LogoutButton";
+import { NavLink, Link } from "react-router-dom";
+
+const PractitionerSideBar = () => {
+  const items = [
+    {
+      key: "dashboard",
+      label: "Dashboard",
+      to: "/admin/dashboard",
+      icon: "dash",
+    },
+    {
+      key: "my-classes",
+      label: "All Cases",
+      to: "/admin/cases",
+      icon: "class",
+    },
+    {
+      key: "user-management",
+      label: "User Management",
+      to: "/admin/user-management",
+      icon: "user",
+    },
+    {
+      key: "audit-logs",
+      label: "Audit Logs",
+      to: "/admin/audit-logs",
+      icon: "audit",
+    },
+    {
+      key: "settings",
+      label: "Settings",
+      to: "/admin/settings",
+      icon: "setting",
+    },
+  ];
+  return (
+    <aside className="flex flex-col justify-between bg-white border-border/60 border-r w-64 h-full">
+      <div>
+        <div className="flex items-center gap-3 px-6 py-6 border-border/60 border-b">
+          <Link to="/admin/dashboard" className="flex items-center gap-3">
+            <img
+              src="/images/practitioner/dashlogo.svg"
+              alt="Kapacia AI"
+              className="rounded-md w-12 h-12"
+            />
+            <div>
+              <h1 className="font-bold text-[#03045E] text-2xl">Kapacia AI</h1>
+              <p className="text-[#67B5F9] text-[12px]">
+                Clinical Documentation
+              </p>
+            </div>
+          </Link>
+        </div>
+
+        <nav className="space-y-1 px-2 py-4">
+          {items.map((it) => (
+            <NavLink
+              key={it.key}
+              to={it.to}
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-4 py-3 rounded-lg mx-2 hover:bg-gray-100 ${
+                  isActive ? "bg-blue-50  text-primary" : "text-gray-600"
+                }`
+              }
+            >
+              {({ isActive }) => (
+                <>
+                  <img
+                    src={
+                      isActive
+                        ? `/images/admin/active/${it.icon}.svg`
+                        : `/images/admin/${it.icon}.svg`
+                    }
+                    alt={it.label}
+                    className="w-5 h-5"
+                  />
+                  <span className="font-medium">{it.label}</span>
+                </>
+              )}
+            </NavLink>
+          ))}
+        </nav>
+      </div>
+
+      <div className="mt-auto px-6 py-8">
+        <div className="pt-6 border-t">
+          <LogoutButton />
+        </div>
+      </div>
+    </aside>
+  );
+};
+
+export default PractitionerSideBar;
