@@ -112,54 +112,37 @@ export const SessionViewPage = () => {
       };
     }
 
-    // Try to use content first
-    if (
-      latestSoapNote.content?.subjective &&
-      latestSoapNote.content?.objective &&
-      latestSoapNote.content?.assessment &&
-      latestSoapNote.content?.plan
-    ) {
+    // Use structured content directly from backend
+    if (latestSoapNote.content) {
       return {
-        subjective: latestSoapNote.content.subjective,
-        objective: latestSoapNote.content.objective,
-        assessment: latestSoapNote.content.assessment,
-        plan: latestSoapNote.content.plan,
+        subjective: latestSoapNote.content.subjective || "",
+        objective: latestSoapNote.content.objective || "",
+        assessment: latestSoapNote.content.assessment || "",
+        plan: latestSoapNote.content.plan || "",
       };
-    }
-
-    // If content has subjective but it looks like a JSON string, parse it
-    if (
-      latestSoapNote.content?.subjective &&
-      latestSoapNote.content.subjective.includes("subjective")
-    ) {
-      try {
-        const parsed = JSON.parse(latestSoapNote.content.subjective);
-        return {
-          subjective: parsed.subjective || "",
-          objective: parsed.objective || "",
-          assessment: parsed.assessment || "",
-          plan: parsed.plan || "",
-        };
-      } catch (e) {
-        console.error("Failed to parse subjective JSON:", e);
-      }
     }
 
     // Fallback to contentText
     if (latestSoapNote.contentText) {
       const lines = latestSoapNote.contentText.split("\n");
-      const result = {
+      const result: {
+        subjective: string;
+        objective: string;
+        assessment: string;
+        plan: string;
+      } = {
         subjective: "",
         objective: "",
         assessment: "",
         plan: "",
       };
 
-      let currentSection = "";
+      let currentSection: keyof typeof result | "" = "";
       let currentText = "";
 
       for (const line of lines) {
         if (line.includes("S (Subjective):")) {
+          if (currentSection) result[currentSection] = currentText.trim();
           currentSection = "subjective";
           currentText = "";
         } else if (line.includes("O (Objective):")) {
