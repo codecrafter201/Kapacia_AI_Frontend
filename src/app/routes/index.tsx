@@ -27,6 +27,7 @@ import { UserManagementPage } from "@/modules/admin/usermanagement/UserManagemen
 import { SupervisionManagementPage } from "@/modules/admin/supervision/SupervisionManagementPage";
 import { AdminSettingPage } from "@/modules/admin/settings/AdminSettingPage";
 import { AuditPage } from "@/modules/admin/audit/AuditPage";
+import AdminCasePageDetails from "@/modules/admin/cases/AdminCasePageDetails";
 
 export function AppRoutes() {
   return (
@@ -59,6 +60,7 @@ export function AppRoutes() {
           <Route index element={<Navigate to="/admin/dashboard" replace />} />
           <Route path="dashboard" element={<AdminDashBoardPage />} />
           <Route path="cases" element={<AdminCasesPage />} />
+          <Route path="cases/:caseId" element={<AdminCasePageDetails />} />
           <Route path="user-management" element={<UserManagementPage />} />
           <Route
             path="supervision-management"

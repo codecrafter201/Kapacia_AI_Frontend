@@ -22,7 +22,7 @@ export const AdminCasesPage = () => {
   });
 
   const handleCaseClick = (caseId: string) => {
-    navigate(`/practitioner/my-cases/${caseId}`);
+    navigate(`/admin/cases/${caseId}`);
   };
 
   const handleCreateCaseSuccess = () => {
@@ -170,7 +170,7 @@ export const AdminCasesPage = () => {
                                   month: "short",
                                   day: "numeric",
                                   year: "numeric",
-                                }
+                                },
                               )
                             : "N/A"}
                         </span>
@@ -190,7 +190,7 @@ export const AdminCasesPage = () => {
                                   month: "short",
                                   day: "numeric",
                                   year: "numeric",
-                                }
+                                },
                               )
                             : "N/A"}
                         </span>

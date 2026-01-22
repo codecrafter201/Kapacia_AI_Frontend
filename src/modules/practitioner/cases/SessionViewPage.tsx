@@ -196,6 +196,17 @@ export const SessionViewPage = () => {
       .padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
+  // Get status info with color coding
+  const getStatusInfo = () => {
+    const status = displaySessionData?.status;
+    if (status === "Completed" || status === "Approved") {
+      return { label: "Approved", color: "green" };
+    } else if (status === "Pending" || status === "Created") {
+      return { label: "Pending Review", color: "orange" };
+    }
+    return { label: status, color: "orange" };
+  };
+
   // Format transcript timestamp to readable format
   const formatTranscriptTimestamp = (timestamp: string | number) => {
     if (typeof timestamp === "number") {
@@ -531,6 +542,8 @@ export const SessionViewPage = () => {
     soapNoteStatus: sessionData.hasSoapNote ? "Generated" : "Pending",
   };
 
+  const statusInfo = getStatusInfo();
+
   return (
     <div className="space-y-6 w-full">
       {/* Header */}
@@ -550,8 +563,19 @@ export const SessionViewPage = () => {
               Session {displaySessionData.sessionNumber} -{" "}
               {displaySessionData.date}
             </h1>
-            <span className="ml-1 px-3 py-1 rounded-full bg-ring/10 text-ring text-sm">
-              {displaySessionData.status}
+            <span
+              className={`ml-1 px-3 py-1 rounded-full text-sm font-medium flex items-center gap-1 ${
+                statusInfo?.color === "green"
+                  ? "bg-ring/10 text-ring"
+                  : "bg-[#F2933911] text-[#F29339]"
+              }`}
+            >
+              {statusInfo?.color === "green" && (
+                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
+                </svg>
+              )}
+              {statusInfo?.label}
             </span>
           </div>
 

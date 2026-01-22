@@ -16,6 +16,7 @@ import {
   Triangle,
   Pause,
   Loader2,
+  Trash2,
 } from "lucide-react";
 import {
   useCreateSession,
@@ -57,7 +58,7 @@ export const RecordSessionPage = () => {
   const [isStarting, setIsStarting] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [recordingTime, setRecordingTime] = useState("00:00:00");
-  const [piiMasking, setPiiMasking] = useState("off");
+  const [piiMasking, setPiiMasking] = useState("on");
   // const [advancedLanguage, setAdvancedLanguage] = useState("english");
   const [allowTranscript, setAllowTranscript] = useState(true);
   const [sessionStartTime, setSessionStartTime] = useState<string | null>(null);
@@ -66,6 +67,7 @@ export const RecordSessionPage = () => {
   const audioContextRef = useRef<AudioContext | null>(null);
   const audioSourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
   const processorRef = useRef<ScriptProcessorNode | null>(null);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
 
   // API hooks
   const createSessionMutation = useCreateSession();
@@ -104,6 +106,7 @@ export const RecordSessionPage = () => {
   const recordingStartTimeRef = useRef<number | null>(null);
   const pauseStartTimeRef = useRef<number | null>(null);
   const totalPausedTimeRef = useRef<number>(0);
+  const isPausedRef = useRef<boolean>(false);
 
   useEffect(() => {
     if (!waveformRef.current) return;
@@ -142,7 +145,10 @@ export const RecordSessionPage = () => {
 
   const startTimer = () => {
     timerRef.current = window.setInterval(() => {
-      elapsedSecondsRef.current++;
+      // Only increment timer when NOT paused - use ref to avoid closure issues
+      if (!isPausedRef.current) {
+        elapsedSecondsRef.current++;
+      }
       const m = String(Math.floor(elapsedSecondsRef.current / 60)).padStart(
         2,
         "0",
@@ -251,6 +257,9 @@ export const RecordSessionPage = () => {
           channelCount: 1, // Force mono
         },
       });
+
+      // Store stream reference for potential reset
+      mediaStreamRef.current = stream;
 
       // Step 4: Connect to transcription WebSocket with sessionId
       if (allowTranscript) {
@@ -458,20 +467,17 @@ export const RecordSessionPage = () => {
             disconnectTranscription();
           }
 
+          // Calculate duration BEFORE resetting the timer ref
+          const durationSeconds = elapsedSecondsRef.current;
+          console.log(
+            "[Stop Recording] Duration:",
+            `${Math.floor(durationSeconds / 60)}m ${durationSeconds % 60}s`,
+          );
+
           stopTimer();
           elapsedSecondsRef.current = 0;
           setIsRecording(false);
           setIsPaused(false);
-
-          // Calculate duration - use ref to avoid Date.now() in render
-          const durationSeconds = recordingStartTimeRef.current
-            ? Math.floor(
-                (Date.now() -
-                  recordingStartTimeRef.current -
-                  totalPausedTimeRef.current) /
-                  1000,
-              )
-            : 0;
 
           // Wait for the blob to be ready (use ref, not state which is async)
           let attempts = 0;
@@ -678,6 +684,7 @@ export const RecordSessionPage = () => {
       }
 
       // Resume timer from where it was
+      isPausedRef.current = false;
       startTimer();
     } else {
       // Pause recording
@@ -699,10 +706,206 @@ export const RecordSessionPage = () => {
         disconnectTranscription();
       }
 
+      isPausedRef.current = true;
       stopTimer();
     }
 
     setIsPaused(!isPaused);
+  };
+
+  const handleResetRecording = async () => {
+    // Show confirmation dialog
+    const result = await Swal.fire({
+      title: "Reset Recording?",
+      text: "Are you sure you want to discard the current recording and start fresh?",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#f97316",
+      cancelButtonColor: "#6b7280",
+      confirmButtonText: "Yes, Clear Recording",
+      cancelButtonText: "Cancel",
+    });
+
+    if (!result.isConfirmed) {
+      return;
+    }
+
+    try {
+      console.log("[Reset Recording] Starting reset process...");
+
+      // Stop current recording if active
+      if (
+        mediaRecorderRef.current &&
+        mediaRecorderRef.current.state !== "inactive"
+      ) {
+        mediaRecorderRef.current.stop();
+        console.log("[Reset Recording] Stopped old MediaRecorder");
+      }
+
+      // Wait a bit for onstop handler to complete
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // Clear all recording data
+      recordedBlobRef.current = null;
+      setRecordedBlob(null);
+      audioChunksRef.current = [];
+      elapsedSecondsRef.current = 0;
+      pauseStartTimeRef.current = null;
+      totalPausedTimeRef.current = 0;
+      setRecordingTime("00:00:00");
+      setFileSizeMb("0.00 MB");
+      setIsPaused(false);
+      isPausedRef.current = false;  // Sync ref state
+
+      // Stop current timer
+      stopTimer();
+
+      // Recreate the audio pipeline (AudioContext + ScriptProcessor)
+      if (mediaStreamRef.current) {
+        console.log("[Reset Recording] Recreating audio pipeline...");
+
+        try {
+          // Check if stream is still active
+          const isStreamActive = mediaStreamRef.current.getTracks().some(track => track.readyState === 'live');
+          
+          if (!isStreamActive) {
+            console.warn("[Reset Recording] Media stream is dead, getting new stream...");
+            // Get new stream
+            const newStream = await navigator.mediaDevices.getUserMedia({
+              audio: {
+                echoCancellation: true,
+                noiseSuppression: true,
+                autoGainControl: true,
+                channelCount: 1,
+              },
+            });
+            mediaStreamRef.current = newStream;
+          }
+
+          // Recreate AudioContext
+          const audioContext = new AudioContext({ sampleRate: 16000 });
+          const sourceNode = audioContext.createMediaStreamSource(mediaStreamRef.current);
+          const processorNode = audioContext.createScriptProcessor(4096, 1, 1);
+
+          audioContextRef.current = audioContext;
+          audioSourceRef.current = sourceNode;
+          processorRef.current = processorNode;
+
+          // Set up audio processing for transcription
+          processorNode.onaudioprocess = (e) => {
+            if (!allowTranscript) return;
+
+            try {
+              const input = e.inputBuffer.getChannelData(0);
+              const inputSampleRate = audioContext.sampleRate;
+              const targetSampleRate = 16000;
+
+              const pcmData = resampleAudio(
+                input,
+                inputSampleRate,
+                targetSampleRate,
+              );
+
+              const arrayBuffer = pcmData.buffer as ArrayBuffer;
+
+              if (validatePCMBuffer(arrayBuffer)) {
+                const pcmBlob = new Blob([arrayBuffer], {
+                  type: "application/octet-stream",
+                });
+
+                // Send to transcription service
+                sendAudioChunk(pcmBlob);
+              }
+            } catch (error) {
+              console.error("[Reset Recording] Audio Processing Error:", error);
+            }
+          };
+
+          sourceNode.connect(processorNode);
+          processorNode.connect(audioContext.destination);
+
+          console.log("[Reset Recording] Audio pipeline recreated");
+        } catch (audioError) {
+          console.error("[Reset Recording] Failed to recreate audio pipeline:", audioError);
+        }
+      }
+
+      // Recreate MediaRecorder with the existing stream
+      if (mediaStreamRef.current) {
+        console.log("[Reset Recording] Recreating MediaRecorder with existing stream...");
+
+        const newMediaRecorder = new MediaRecorder(mediaStreamRef.current, {
+          mimeType: "audio/webm;codecs=opus",
+        });
+
+        mediaRecorderRef.current = newMediaRecorder;
+        audioChunksRef.current = [];
+
+        newMediaRecorder.ondataavailable = (event) => {
+          if (event.data.size > 0) {
+            audioChunksRef.current.push(event.data);
+            const totalBytes = audioChunksRef.current.reduce(
+              (acc, chunk) => acc + chunk.size,
+              0,
+            );
+            console.log("[Reset Recording] Data available, new size:", formatBytesToMb(totalBytes));
+            setFileSizeMb(formatBytesToMb(totalBytes));
+          }
+        };
+
+        newMediaRecorder.onstop = () => {
+          console.log("[Reset Recording] onstop event fired");
+          const finalBlob = new Blob(audioChunksRef.current, {
+            type: "audio/webm",
+          });
+          recordedBlobRef.current = finalBlob;
+          setRecordedBlob(finalBlob);
+          setFileSizeMb(formatBytesToMb(finalBlob.size));
+          console.log("Recorded blob:", finalBlob);
+        };
+
+        // Start recording with 1000ms timeslice like original
+        newMediaRecorder.start(1000);
+        console.log("[Reset Recording] New MediaRecorder started");
+      }
+
+      // Reconnect transcription if enabled
+      if (allowTranscript && currentSessionId) {
+        console.log("[Reset Recording] Reconnecting transcription...");
+        try {
+          // Disconnect first to clean up old connection
+          disconnectTranscription();
+          await new Promise((resolve) => setTimeout(resolve, 100));
+
+          // Reconnect
+          await connectTranscription(currentSessionId);
+          await new Promise((resolve) => setTimeout(resolve, 300));
+          console.log("[Reset Recording] Transcription reconnected");
+        } catch (error) {
+          console.error("[Reset Recording] Failed to reconnect transcription:", error);
+        }
+      }
+
+      // Restart timer for fresh recording
+      startTimer();
+
+      Swal.fire({
+        title: "Recording Cleared!",
+        text: "Ready to record again from the beginning.",
+        icon: "success",
+        confirmButtonColor: "#188aec",
+      });
+
+      console.log("[Reset Recording] Recording cleared, ready for fresh start");
+    } catch (error) {
+      console.error("[Reset Recording] Error:", error);
+      Swal.fire({
+        title: "Error",
+        text: "Failed to reset recording. Please try again.",
+        icon: "error",
+        confirmButtonColor: "#188aec",
+      });
+    }
   };
 
   return (
@@ -922,8 +1125,8 @@ export const RecordSessionPage = () => {
             </>
           ) : (
             <>
-              {/* Stop and Pause Buttons */}
-              <div className="flex gap-3 mb-4">
+              {/* Stop, Pause, and Reset Buttons */}
+              <div className="flex flex-wrap justify-center gap-3 mb-4">
                 <Button
                   onClick={handleStopRecording}
                   variant="destructive"
@@ -943,6 +1146,13 @@ export const RecordSessionPage = () => {
                     <Pause className="w-4 h-4" />
                   )}
                   {isPaused ? "Resume" : "Pause"}
+                </Button>
+                <Button
+                  onClick={handleResetRecording}
+                  className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 px-6 text-white"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Clear Audio
                 </Button>
               </div>
 

@@ -64,6 +64,7 @@ export const CaseDetailPage = () => {
     caseId,
     {
       eventType: timelineFilter,
+      sessionStatus: sessionFilter,
       allEntries: loadAllEntries,
     },
   );
@@ -124,7 +125,13 @@ export const CaseDetailPage = () => {
             <h1 className="font-medium text-secondary text-xl sm:text-2xl">
               {caseInfo.internalRef || "N/A"} - {caseInfo.displayName || "N/A"}
             </h1>
-            <span className="px-3 py-1 rounded-full bg-ring/10 text-ring text-sm">
+            <span
+              className={`px-3 py-1 rounded-full text-sm ${
+                caseInfo.status === "Active"
+                  ? "bg-ring/10 text-ring"
+                  : "border border-border bg-border/30 text-accent"
+              }`}
+            >
               {caseInfo.status || "Active"}
             </span>
           </div>
@@ -134,16 +141,27 @@ export const CaseDetailPage = () => {
               onClick={() =>
                 navigate(`/practitioner/my-cases/${caseId}/record-session`)
               }
-              // variant="outline"
-              className="flex items-center gap-2 text-white"
+              disabled={caseInfo.status !== "Active"}
+              className="flex items-center gap-2 disabled:opacity-50 text-white disabled:cursor-not-allowed"
+              title={
+                caseInfo.status !== "Active"
+                  ? `Cannot record session - case status is ${caseInfo.status}`
+                  : "Record new session"
+              }
             >
               <Mic className="w-4 h-4" />
               Record Session
             </Button>
             <Button
               onClick={() => setIsUploadModalOpen(true)}
+              disabled={caseInfo.status !== "Active"}
               variant="outline"
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              title={
+                caseInfo.status !== "Active"
+                  ? `Cannot upload file - case status is ${caseInfo.status}`
+                  : "Upload file"
+              }
             >
               <Upload className="w-4 h-4" />
               Upload File
@@ -274,7 +292,13 @@ export const CaseDetailPage = () => {
           <div className="flex gap-2">
             <Button
               onClick={() => setIsGenerateSummaryModalOpen(true)}
-              className="text-white"
+              disabled={caseInfo.status !== "Active"}
+              className="disabled:opacity-50 text-white disabled:cursor-not-allowed"
+              title={
+                caseInfo.status !== "Active"
+                  ? `Cannot generate summary - case status is ${caseInfo.status}`
+                  : "Generate timeline summary"
+              }
             >
               Generate Timelines Summary
             </Button>
@@ -285,26 +309,24 @@ export const CaseDetailPage = () => {
                 className="px-3 py-2 pr-8 border border-border focus:border-blue-500 rounded-lg outline-none focus:ring-2 focus:ring-blue-200 text-accent text-sm appearance-none"
               >
                 <option value="">All Types</option>
-                <option value="summary">Summary</option>
+                <option value="timeline_summary">Summary</option>
                 <option value="session">Sessions</option>
-                <option value="file">Files</option>
+                <option value="file_upload">Files</option>
               </select>
               <ChevronDown className="top-1/2 right-2 absolute w-4 h-4 text-accent -translate-y-1/2 pointer-events-none" />
             </div>
-            <div className="relative">
+            {/* <div className="relative">
               <select
                 value={sessionFilter}
                 onChange={(e) => setSessionFilter(e.target.value)}
                 className="px-3 py-2 pr-8 border border-border focus:border-blue-500 rounded-lg outline-none focus:ring-2 focus:ring-blue-200 text-accent text-sm appearance-none"
               >
                 <option value="">All Sessions</option>
-                <option value="summary">Active</option>
-                <option value="session">UnApproved</option>
-                <option value="file">OnHold</option>
-                <option value="file">Closed</option>
+                <option value="Processing">Processing</option>
+                <option value="Approved">Approved</option>
               </select>
               <ChevronDown className="top-1/2 right-2 absolute w-4 h-4 text-accent -translate-y-1/2 pointer-events-none" />
-            </div>
+            </div> */}
           </div>
         </div>
 

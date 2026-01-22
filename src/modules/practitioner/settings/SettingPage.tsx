@@ -3,16 +3,23 @@ import { useAuth } from "@/contexts/useAuth";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { User, Upload, HelpCircle } from "lucide-react";
+import { User, HelpCircle, Loader2 } from "lucide-react";
+import {
+  updateProfile,
+  updatePassword,
+} from "@/services/userService/userService";
+import Swal from "sweetalert2";
 
 export const SettingPage = () => {
-  const { user } = useAuth();
+  const { user, setUser } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
-    name: user ? `Dr. ${user.name}` : "Dr. Sara Tan",
-    email: user?.email || "slothuiofficial@gmail.com",
-    password: "**********",
-    confirmPassword: "**********",
+    name: user?.name || "",
+    email: user?.email || "",
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
   });
   const [sessionLanguage, setSessionLanguage] = useState("english");
   const [piiMasking, setPiiMasking] = useState("on");
@@ -21,13 +28,115 @@ export const SettingPage = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      console.log("File uploaded:", file);
-      // Handle file upload logic here
+  const handleSave = async () => {
+    setIsLoading(true);
+    try {
+      let profileUpdated = false;
+      let passwordUpdated = false;
+
+      // Update profile if name changed
+      if (formData.name.trim() !== "" && formData.name !== user?.name) {
+        const profileResponse = await updateProfile({ name: formData.name });
+        if (
+          profileResponse &&
+          (profileResponse.success || profileResponse.user)
+        ) {
+          profileUpdated = true;
+          // Update user context
+          setUser({ ...user, name: formData.name });
+        }
+      }
+
+      // Update password if provided
+      if (formData.currentPassword && formData.newPassword) {
+        if (formData.newPassword !== formData.confirmPassword) {
+          await Swal.fire({
+            title: "Error",
+            text: "New password and confirm password do not match",
+            icon: "error",
+            confirmButtonColor: "#188aec",
+          });
+          setIsLoading(false);
+          return;
+        }
+
+        if (formData.newPassword.length < 6) {
+          await Swal.fire({
+            title: "Error",
+            text: "Password must be at least 6 characters long",
+            icon: "error",
+            confirmButtonColor: "#188aec",
+          });
+          setIsLoading(false);
+          return;
+        }
+
+        const passwordResponse = await updatePassword({
+          currentPassword: formData.currentPassword,
+          newPassword: formData.newPassword,
+        });
+
+        if (passwordResponse && passwordResponse.success) {
+          passwordUpdated = true;
+        }
+      }
+
+      if (profileUpdated || passwordUpdated) {
+        if (profileUpdated) {
+          await Swal.fire({
+            title: "Success!",
+            text: "Profile updated successfully",
+            icon: "success",
+            confirmButtonColor: "#188aec",
+          });
+        }
+
+        if (passwordUpdated) {
+          await Swal.fire({
+            title: "Success!",
+            text: "Password updated successfully",
+            icon: "success",
+            confirmButtonColor: "#188aec",
+          });
+        }
+
+        // Clear password fields after successful save
+        setFormData({
+          ...formData,
+          currentPassword: "",
+          newPassword: "",
+          confirmPassword: "",
+        });
+
+        setIsEditing(false);
+      } else {
+        await Swal.fire({
+          title: "Success!",
+          text: "Profile updated successfully.",
+          icon: "success",
+          confirmButtonColor: "#188aec",
+        });
+      }
+    } catch (error: any) {
+      console.error("Failed to update:", error);
+      await Swal.fire({
+        title: "Error",
+        text: error.response?.data?.message || "Failed to update profile",
+        icon: "error",
+        confirmButtonColor: "#188aec",
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
+
+  // const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  //   const file = e.target.files?.[0];
+  //   if (file) {
+  //     console.log("File uploaded:", file);
+  //     // Handle file upload logic here
+  //   }
+  // };
 
   return (
     <div className="space-y-4 w-full">
@@ -42,17 +151,32 @@ export const SettingPage = () => {
           </p>
         </div>
         <Button
-          onClick={() => setIsEditing(!isEditing)}
-          className="bg-primary hover:bg-primary/80 rounded-full w-full sm:w-auto text-white"
+          onClick={() => {
+            if (isEditing) {
+              handleSave();
+            } else {
+              setIsEditing(true);
+            }
+          }}
+          disabled={isLoading}
+          className="bg-primary hover:bg-primary/80 disabled:opacity-50 rounded-full w-full sm:w-auto text-white"
         >
-          {isEditing ? "Save" : "Edit"}
+          {isLoading ? (
+            <>
+              <Loader2 className="mr-2 w-4 h-4 animate-spin" />
+              Saving...
+            </>
+          ) : isEditing ? (
+            "Save"
+          ) : (
+            "Edit"
+          )}
         </Button>
       </div>
 
       {/* Profile Picture Section */}
-      <Card className="p-6">
+      {/* <Card className="p-6">
         <div className="gap-6 grid grid-cols-1 lg:grid-cols-2">
-          {/* Left Side - Info */}
           <div>
             <h2 className="font-medium text-secondary text-sm">
               Profile Picture
@@ -61,16 +185,13 @@ export const SettingPage = () => {
               This is where people will see your actual face
             </p>
             <div className="flex items-center gap-4">
-              {/* <div className="flex justify-center items-center bg-gray-200 rounded-full w-20 h-20 font-semibold text-gray-700 text-2xl uppercase">
-                {user?.name?.[0] || "S"}
-              </div> */}
+              
               <button className="font-medium text-primary text-sm hover:underline cursor-pointer">
                 View Details
               </button>
             </div>
           </div>
 
-          {/* Right Side - Upload Area */}
           <div className="flex flex-col justify-center">
             <label
               htmlFor="profile-upload"
@@ -96,7 +217,7 @@ export const SettingPage = () => {
             </label>
           </div>
         </div>
-      </Card>
+      </Card> */}
 
       {/* User Details Section */}
       <Card className="p-6">
@@ -135,7 +256,7 @@ export const SettingPage = () => {
                 name="email"
                 value={formData.email}
                 onChange={handleInputChange}
-                disabled={!isEditing}
+                disabled
                 className="py-2.5"
                 placeholder="Your email"
               />
@@ -165,16 +286,30 @@ export const SettingPage = () => {
 
       {/* Password Section */}
       <Card className="flex md:flex-row flex-col gap-4 p-6">
-        <h2 className="mt-1 font-medium text-secondary text-sm">Password</h2>
+        <div className="md:min-w-[200px]">
+          <h2 className="mt-1 font-medium text-secondary text-sm">Password</h2>
+          <p className="mt-1 text-accent text-xs">
+            Leave blank if you don't want to change
+          </p>
+        </div>
         <div className="space-y-2 w-full max-w-md">
           <Input
             type="password"
-            name="password"
-            value={formData.password}
+            name="currentPassword"
+            value={formData.currentPassword}
             onChange={handleInputChange}
             disabled={!isEditing}
             className="py-2.5"
-            placeholder="Enter new password"
+            placeholder="Current password"
+          />
+          <Input
+            type="password"
+            name="newPassword"
+            value={formData.newPassword}
+            onChange={handleInputChange}
+            disabled={!isEditing}
+            className="py-2.5"
+            placeholder="New password"
           />
           <Input
             type="password"
@@ -194,26 +329,26 @@ export const SettingPage = () => {
           Default Session Language
         </h2>
         <div className="flex flex-wrap gap-2">
-          <label className="flex items-center gap-2 cursor-pointer">
+          <label className="flex items-center gap-2 opacity-50 cursor-not-allowed">
             <input
               type="radio"
               name="sessionLanguage"
               value="english"
               checked={sessionLanguage === "english"}
               onChange={(e) => setSessionLanguage(e.target.value)}
-              disabled={!isEditing}
+              disabled={true}
               className="focus:ring-2 focus:ring-blue-500 w-4 h-4 text-blue-600"
             />
             <span className="text-secondary text-sm">English</span>
           </label>
-          <label className="flex items-center gap-2 cursor-pointer">
+          <label className="flex items-center gap-2 opacity-50 cursor-not-allowed">
             <input
               type="radio"
               name="sessionLanguage"
               value="mandarin"
               checked={sessionLanguage === "mandarin"}
               onChange={(e) => setSessionLanguage(e.target.value)}
-              disabled={!isEditing}
+              disabled={true}
               className="focus:ring-2 focus:ring-blue-500 w-4 h-4 text-blue-600"
             />
             <span className="text-secondary text-sm">Mandarin</span>
@@ -227,26 +362,26 @@ export const SettingPage = () => {
           PII Masking Default
         </h2>
         <div className="flex flex-wrap gap-2">
-          <label className="flex items-center gap-2 cursor-pointer">
+          <label className="flex items-center gap-2 opacity-50 cursor-not-allowed">
             <input
               type="radio"
               name="piiMasking"
               value="on"
               checked={piiMasking === "on"}
               onChange={(e) => setPiiMasking(e.target.value)}
-              disabled={!isEditing}
+              disabled={true}
               className="focus:ring-2 focus:ring-blue-500 w-4 h-4 text-blue-600"
             />
             <span className="text-secondary text-sm">On</span>
           </label>
-          <label className="flex items-center gap-2 cursor-pointer">
+          <label className="flex items-center gap-2 opacity-50 cursor-not-allowed">
             <input
               type="radio"
               name="piiMasking"
               value="off"
               checked={piiMasking === "off"}
               onChange={(e) => setPiiMasking(e.target.value)}
-              disabled={!isEditing}
+              disabled={true}
               className="focus:ring-2 focus:ring-blue-500 w-4 h-4 text-blue-600"
             />
             <span className="text-secondary text-sm">Off</span>

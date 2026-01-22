@@ -3,7 +3,7 @@ import { useAuth } from "@/contexts/useAuth";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { User, Upload, HelpCircle } from "lucide-react";
+import { User, HelpCircle } from "lucide-react";
 
 export const AdminSettingPage = () => {
   const { user } = useAuth();
@@ -21,13 +21,13 @@ export const AdminSettingPage = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      console.log("File uploaded:", file);
-      // Handle file upload logic here
-    }
-  };
+  // const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  //   const file = e.target.files?.[0];
+  //   if (file) {
+  //     console.log("File uploaded:", file);
+  //     // Handle file upload logic here
+  //   }
+  // };
 
   return (
     <div className="space-y-4 w-full">
@@ -59,9 +59,8 @@ export const AdminSettingPage = () => {
       </div>
 
       {/* Profile Picture Section */}
-      <Card className="p-6">
+      {/* <Card className="p-6">
         <div className="gap-6 grid grid-cols-1 lg:grid-cols-2">
-          {/* Left Side - Info */}
           <div>
             <h2 className="font-medium text-secondary text-sm">
               Profile Picture
@@ -70,16 +69,12 @@ export const AdminSettingPage = () => {
               This is where people will see your actual face
             </p>
             <div className="flex items-center gap-4">
-              {/* <div className="flex justify-center items-center bg-gray-200 rounded-full w-20 h-20 font-semibold text-gray-700 text-2xl uppercase">
-                {user?.name?.[0] || "S"}
-              </div> */}
               <button className="font-medium text-primary text-sm hover:underline cursor-pointer">
                 View Details
               </button>
             </div>
           </div>
 
-          {/* Right Side - Upload Area */}
           <div className="flex flex-col justify-center">
             <label
               htmlFor="profile-upload"
@@ -105,7 +100,7 @@ export const AdminSettingPage = () => {
             </label>
           </div>
         </div>
-      </Card>
+      </Card> */}
 
       {/* User Details Section */}
       <Card className="p-6">

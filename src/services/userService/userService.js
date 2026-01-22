@@ -16,3 +16,13 @@ export const getPractitioners = function (params = {}) {
     true
   );
 };
+
+// Update user profile (name)
+export const updateProfile = function (data) {
+  return GetApiData("/user/profile", "PUT", data, true);
+};
+
+// Update user password
+export const updatePassword = function (data) {
+  return GetApiData("/user/password", "PUT", data, true);
+};
