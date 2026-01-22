@@ -57,7 +57,8 @@ export const RecordSessionPage = () => {
   const [isStarting, setIsStarting] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [recordingTime, setRecordingTime] = useState("00:00:00");
-  const [piiMasking, setPiiMasking] = useState("off");
+  const [piiMasking, setPiiMasking] = useState("on");
+  const [piiMaskingEnabled, setPiiMaskingEnabled] = useState(true);
   // const [advancedLanguage, setAdvancedLanguage] = useState("english");
   const [allowTranscript, setAllowTranscript] = useState(true);
   const [sessionStartTime, setSessionStartTime] = useState<string | null>(null);
@@ -970,6 +971,16 @@ export const RecordSessionPage = () => {
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-secondary text-xl">Real-time Transcript</h2>
             <div className="flex items-center gap-3">
+              {/* PII Masking Status */}
+              {piiMaskingEnabled && (
+                <div className="flex items-center gap-2 bg-green-50 px-2 py-1 rounded">
+                  <div className="w-2 h-2 rounded-full bg-green-500" />
+                  <span className="text-green-700 text-xs font-medium">
+                    PII Protected
+                  </span>
+                </div>
+              )}
+              
               {/* Connection Status */}
               {allowTranscript && (
                 <div className="flex items-center gap-2">
@@ -1021,13 +1032,29 @@ export const RecordSessionPage = () => {
 
                 {transcriptEntries.map((entry) => (
                   <div key={entry.id} className="text-sm">
-                    <span className="bg-primary/10 mr-2 p-1 rounded-sm font-mono text-primary">
-                      [{entry.timestamp}]
-                    </span>
-                    <span className="font-medium text-secondary">
-                      {entry.speaker}:
-                    </span>{" "}
-                    <span className="text-accent">{entry.text}</span>
+                    <div className="flex items-start gap-2">
+                      <span className="bg-primary/10 p-1 rounded-sm font-mono text-primary text-xs">
+                        [{entry.timestamp}]
+                      </span>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-medium text-secondary">
+                            {entry.speaker}:
+                          </span>
+                          {entry.piiMasked && (
+                            <span className="bg-amber-100 px-2 py-0.5 rounded text-xs text-amber-700 font-medium">
+                              PII Masked
+                            </span>
+                          )}
+                          {entry.isFinal && (
+                            <span className="bg-green-100 px-2 py-0.5 rounded text-xs text-green-700 font-medium">
+                              Final
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-accent">{entry.text}</span>
+                      </div>
+                    </div>
                   </div>
                 ))}
 

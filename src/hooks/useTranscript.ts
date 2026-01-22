@@ -32,12 +32,12 @@ export const useCreateTranscript = () => {
 };
 
 /**
- * Hook to fetch transcript by session ID
+ * Hook to fetch transcript by session ID with PII masking support
  */
-export const useTranscriptBySession = (sessionId: string | undefined) => {
+export const useTranscriptBySession = (sessionId: string | undefined, viewUnmasked: boolean = false) => {
   return useQuery({
-    queryKey: ["transcript", "session", sessionId],
-    queryFn: () => getTranscriptBySession(sessionId!),
+    queryKey: ["transcript", "session", sessionId, viewUnmasked],
+    queryFn: () => getTranscriptBySession(sessionId!, viewUnmasked),
     enabled: !!sessionId,
     staleTime: 1000 * 60 * 5, // 5 minutes
   });

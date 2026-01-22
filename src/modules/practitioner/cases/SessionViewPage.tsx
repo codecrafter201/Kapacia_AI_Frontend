@@ -5,14 +5,22 @@ import { Button } from "@/components/ui/button";
 import { ChatModal } from "./ChatModal";
 import { useLocation } from "react-router-dom";
 import Swal from "sweetalert2";
+import PiiMaskingToggle from "@/components/PiiMaskingToggle";
+import PiiStatistics from "@/components/PiiStatistics";
 import {
   useSessionById,
   useDeleteSession,
   useUpdateSession,
   useSessionAudioUrl,
 } from "@/hooks/useSessions";
-import { useTranscriptBySession } from "@/hooks/useTranscript";
+import { 
+  useTranscriptBySession 
+} from "@/hooks/useTranscript";
 import { useSoapNotesBySession, useApproveSoapNote } from "@/hooks/useSoap";
+import { 
+  getTranscriptBySession,
+  getPiiStatistics 
+} from "@/services/transcriptService/transcriptService";
 
 import WaveSurfer from "wavesurfer.js";
 import {
@@ -40,6 +48,12 @@ export const SessionViewPage = () => {
   const [duration, setDuration] = useState("00:00:00");
   const [volume, setVolume] = useState(0.75);
   const [isMuted, setIsMuted] = useState(false);
+  
+  // PII masking state
+  const [viewUnmasked, setViewUnmasked] = useState(false);
+  const [piiStatistics, setPiiStatistics] = useState(null);
+  const [showPiiStats, setShowPiiStats] = useState(false);
+  
   const waveformRef = useRef<HTMLDivElement>(null);
   const waveSurferRef = useRef<WaveSurfer | null>(null);
   const location = useLocation();
@@ -59,14 +73,14 @@ export const SessionViewPage = () => {
   const deleteSessionMutation = useDeleteSession();
   const updateSessionMutation = useUpdateSession();
 
-  // Fetch transcript data
+  // Fetch transcript data with PII masking support
   const {
     data: transcriptResponse,
     isLoading: loadingTranscript,
     isError: transcriptError,
     error: transcriptErrorData,
     refetch: refetchTranscript,
-  } = useTranscriptBySession(sessionId);
+  } = useTranscriptBySession(sessionId, viewUnmasked);
 
   // Fetch SOAP notes for this session
   const {
@@ -98,6 +112,29 @@ export const SessionViewPage = () => {
   console.log("[SessionViewPage] transcriptData:", transcriptData);
   console.log("[SessionViewPage] loadingTranscript:", loadingTranscript);
   console.log("[SessionViewPage] transcriptError:", transcriptError);
+
+  // Handle PII masking toggle
+  const handlePiiMaskingToggle = async (showUnmasked: boolean) => {
+    setViewUnmasked(showUnmasked);
+    // Refetch transcript with new masking preference
+    await refetchTranscript();
+  };
+
+  // Load PII statistics
+  useEffect(() => {
+    const loadPiiStatistics = async () => {
+      if (sessionId && transcriptData?.piiMaskingEnabled) {
+        try {
+          const statsResponse = await getPiiStatistics(sessionId);
+          setPiiStatistics(statsResponse.data.statistics);
+        } catch (error) {
+          console.error("Failed to load PII statistics:", error);
+        }
+      }
+    };
+
+    loadPiiStatistics();
+  }, [sessionId, transcriptData?.piiMaskingEnabled]);
 
   // Refetch transcript when sessionId changes
   useEffect(() => {
@@ -731,7 +768,40 @@ export const SessionViewPage = () => {
 
       {/* Transcription Section */}
       <Card className="p-6">
-        <h2 className="text-secondary text-lg sm:text-2xl">Transcription</h2>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+          <h2 className="text-secondary text-lg sm:text-2xl">Transcription</h2>
+          
+          {/* PII Masking Controls */}
+          {transcriptData?.piiMaskingEnabled && (
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+              <PiiMaskingToggle
+                hasPii={transcriptData?.hasPii || false}
+                piiMaskingEnabled={transcriptData?.piiMaskingEnabled || false}
+                currentlyMasked={!viewUnmasked}
+                onToggle={handlePiiMaskingToggle}
+                className="flex-shrink-0"
+              />
+              
+              {piiStatistics && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowPiiStats(!showPiiStats)}
+                  className="text-xs"
+                >
+                  {showPiiStats ? 'Hide' : 'Show'} PII Stats
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* PII Statistics (collapsible) */}
+        {showPiiStats && piiStatistics && (
+          <div className="mb-4">
+            <PiiStatistics statistics={piiStatistics} />
+          </div>
+        )}
 
         {loadingTranscript ? (
           <div className="flex justify-center items-center py-8">
@@ -803,12 +873,44 @@ export const SessionViewPage = () => {
                     </span>
                   </p>
                 )}
+                {/* PII Information */}
+                {transcriptData.piiMaskingEnabled && (
+                  <>
+                    <p>
+                      PII Protection:{" "}
+                      <span className="font-semibold text-green-600">
+                        Enabled
+                      </span>
+                    </p>
+                    {transcriptData.hasPii && (
+                      <p>
+                        PII Detected:{" "}
+                        <span className="font-semibold text-amber-600">
+                          {transcriptData.piiMaskingMetadata?.totalEntitiesMasked || 0} entities
+                        </span>
+                      </p>
+                    )}
+                    <p>
+                      Display Mode:{" "}
+                      <span className={`font-semibold ${viewUnmasked ? 'text-amber-600' : 'text-green-600'}`}>
+                        {viewUnmasked ? 'Unmasked' : 'Masked'}
+                      </span>
+                    </p>
+                  </>
+                )}
               </div>
-              {transcriptData.isEdited && (
-                <span className="bg-blue-100 px-3 py-1 rounded-full font-medium text-blue-700 text-xs">
-                  ✓ Edited
-                </span>
-              )}
+              <div className="flex flex-col items-end gap-2">
+                {transcriptData.isEdited && (
+                  <span className="bg-blue-100 px-3 py-1 rounded-full font-medium text-blue-700 text-xs">
+                    ✓ Edited
+                  </span>
+                )}
+                {transcriptData.hasPii && (
+                  <span className="bg-amber-100 px-3 py-1 rounded-full font-medium text-amber-700 text-xs">
+                    ⚠ Contains PII
+                  </span>
+                )}
+              </div>
             </div>
           </div>
         ) : (
