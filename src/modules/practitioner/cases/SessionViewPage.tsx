@@ -64,6 +64,7 @@ export const SessionViewPage = () => {
     data: transcriptResponse,
     isLoading: loadingTranscript,
     isError: transcriptError,
+    error: transcriptErrorData,
     refetch: refetchTranscript,
   } = useTranscriptBySession(sessionId);
 
@@ -81,6 +82,11 @@ export const SessionViewPage = () => {
   console.log("sessionResponse", sessionResponse);
   const transcriptData = transcriptResponse?.data?.transcript || null;
   console.log("transcriptResponse", transcriptData);
+
+  // Check if transcript 404 (not found) - treat as "not available yet" not as error
+  const transcriptNotFound =
+    transcriptError && (transcriptErrorData as any)?.response?.status === 404;
+  const hasTranscriptData = transcriptData && !transcriptError;
 
   // Get the latest SOAP note (first one since they're sorted by version desc)
   const latestSoapNote = soapResponse?.soapNotes?.[0] || null;
@@ -727,20 +733,12 @@ export const SessionViewPage = () => {
       <Card className="p-6">
         <h2 className="text-secondary text-lg sm:text-2xl">Transcription</h2>
 
-        {loadingTranscript && (
+        {loadingTranscript ? (
           <div className="flex justify-center items-center py-8">
             <Loader2 className="w-6 h-6 text-primary animate-spin" />
             <span className="ml-2 text-accent">Loading transcript...</span>
           </div>
-        )}
-
-        {transcriptError && (
-          <div className="bg-red-50 p-4 border border-red-200 rounded-lg">
-            <p className="text-red-600 text-sm">⚠️ Error loading transcript</p>
-          </div>
-        )}
-
-        {transcriptData ? (
+        ) : hasTranscriptData ? (
           <div className="space-y-4">
             {/* Transcript Segments */}
             <div className="space-y-3 bg-primary/5 p-4 rounded-lg max-h-96 overflow-y-auto text-accent text-sm leading-relaxed">
@@ -814,12 +812,13 @@ export const SessionViewPage = () => {
             </div>
           </div>
         ) : (
-          !loadingTranscript && (
-            <div className="py-8 text-accent text-sm text-center italic">
-              No transcript available yet. Transcription will appear here once
-              processed.
+          <div className="space-y-4">
+            <div className="space-y-3 bg-primary/5 p-4 rounded-lg text-accent text-sm leading-relaxed">
+              <p className="py-4 text-center italic">
+                No transcript found. Transcription was not enabled or not found.
+              </p>
             </div>
-          )
+          </div>
         )}
       </Card>
 

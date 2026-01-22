@@ -26,6 +26,7 @@ export const EditSessionPage = () => {
     data: transcriptResponse,
     isLoading: loadingTranscript,
     isError: transcriptError,
+    error: transcriptErrorData,
   } = useTranscriptBySession(sessionId);
 
   const updateSoapNoteMutation = useUpdateSoapNote();
@@ -35,12 +36,17 @@ export const EditSessionPage = () => {
   const latestSoapNote = soapResponse?.soapNotes?.[0] || null;
   const transcriptData = transcriptResponse?.data?.transcript || null;
 
-  // Initialize SOAP note state
+  // Check if transcript 404 (not found) - treat as "not available yet" not as error
+  const transcriptNotFound =
+    transcriptError && (transcriptErrorData as any)?.response?.status === 404;
+  const hasTranscriptData = transcriptData && !transcriptError;
+
+  // Initialize SOAP note state with default placeholder text
   const [soapNote, setSoapNote] = useState({
-    subjective: "",
-    objective: "",
-    assessment: "",
-    plan: "",
+    subjective: "Patient information not yet available",
+    objective: "Objective information not yet available",
+    assessment: "Assessment not yet available",
+    plan: "Treatment plan not yet available",
   });
 
   const [hasEdits, setHasEdits] = useState({
@@ -129,30 +135,35 @@ export const EditSessionPage = () => {
   };
 
   const handleSave = async () => {
-    if (!latestSoapNote?._id) {
-      Swal.fire({
-        title: "Error",
-        text: "SOAP note not found",
-        icon: "error",
-        confirmButtonColor: "#188aec",
-      });
-      return;
-    }
-
     try {
-      await updateSoapNoteMutation.mutateAsync({
-        soapId: latestSoapNote._id,
-        data: {
-          content: {
+      // If no existing SOAP note, create a new one
+      if (!latestSoapNote?._id) {
+        await generateSoapNoteMutation.mutateAsync({
+          sessionId: sessionId!,
+          transcriptText: formatContentText(soapNote),
+          manualContent: {
             subjective: soapNote.subjective,
             objective: soapNote.objective,
             assessment: soapNote.assessment,
             plan: soapNote.plan,
           },
-          contentText: formatContentText(soapNote),
-          status: "Draft",
-        },
-      });
+        });
+      } else {
+        // Update existing SOAP note
+        await updateSoapNoteMutation.mutateAsync({
+          soapId: latestSoapNote._id,
+          data: {
+            content: {
+              subjective: soapNote.subjective,
+              objective: soapNote.objective,
+              assessment: soapNote.assessment,
+              plan: soapNote.plan,
+            },
+            contentText: formatContentText(soapNote),
+            status: "Draft",
+          },
+        });
+      }
 
       Swal.fire({
         title: "Success!",
@@ -219,7 +230,7 @@ export const EditSessionPage = () => {
   };
 
   const handleRegenerateWithAI = async () => {
-    if (!sessionId || !transcriptData) {
+    if (!sessionId || !hasTranscriptData) {
       Swal.fire({
         title: "Error",
         text: "Transcript not found. Cannot regenerate SOAP note.",
@@ -311,15 +322,16 @@ export const EditSessionPage = () => {
       )}
 
       {/* Error State */}
-      {soapError && (
-        <Card className="bg-red-50 p-6 border border-red-200">
-          <p className="text-red-600">
-            Error loading SOAP note. Please try again.
+      {soapError && !latestSoapNote && (
+        <Card className="bg-amber-50 p-6 border border-amber-200">
+          <p className="text-amber-700">
+            No SOAP note found yet. You can manually create one below or
+            generate it with AI.
           </p>
         </Card>
       )}
 
-      {!loadingSoapNotes && latestSoapNote && (
+      {!loadingSoapNotes && (
         <>
           {/* Approved Note Warning */}
           {/* {latestSoapNote?.status === "Approved" && (
@@ -358,31 +370,41 @@ export const EditSessionPage = () => {
             <div className="flex sm:flex-row flex-col sm:justify-between sm:items-start gap-4">
               <div className="flex items-center gap-3">
                 <h1 className="font-medium text-secondary text-lg sm:text-2xl">
-                  Edit SOAP Note - Version {latestSoapNote.version}
+                  {latestSoapNote
+                    ? `Edit SOAP Note - Version ${latestSoapNote.version}`
+                    : "Create SOAP Note"}
                 </h1>
-                <span className="px-3 py-1 rounded-full bg-ring/10 text-ring text-xs">
-                  {latestSoapNote.status}
-                </span>
+                {latestSoapNote && (
+                  <span className="px-3 py-1 rounded-full bg-ring/10 text-ring text-xs">
+                    {latestSoapNote.status}
+                  </span>
+                )}
               </div>
             </div>
 
-            <p className="text-accent text-sm">
-              Generated:{" "}
-              {new Date(latestSoapNote.createdAt).toLocaleDateString("en-US", {
-                month: "short",
-                day: "numeric",
-                year: "numeric",
-                hour: "2-digit",
-                minute: "2-digit",
-              })}{" "}
-              • By {latestSoapNote.generatedBy}
-            </p>
+            {latestSoapNote && (
+              <p className="text-accent text-sm">
+                Generated:{" "}
+                {new Date(latestSoapNote.createdAt).toLocaleDateString(
+                  "en-US",
+                  {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  },
+                )}{" "}
+                • By {latestSoapNote.generatedBy}
+              </p>
+            )}
 
             <div className="flex items-center bg-[#F2933911] mt-3 mr-auto p-2 rounded-lg text-[#F29339] text-sm">
               <span className="">⚠</span>
               <p className="ml-1 text-xs">
-                Editing will create a new version. Previous versions are
-                preserved.
+                {latestSoapNote
+                  ? "Editing will create a new version. Previous versions are preserved."
+                  : "You can manually create a SOAP note or use AI to generate one from the transcript."}
               </p>
             </div>
           </Card>
@@ -402,8 +424,7 @@ export const EditSessionPage = () => {
                 onClick={handleRegenerateWithAI}
                 disabled={
                   loadingTranscript ||
-                  transcriptError ||
-                  !transcriptData ||
+                  !hasTranscriptData ||
                   generateSoapNoteMutation.isPending
                 }
                 className="flex items-center gap-2 disabled:opacity-50 text-accent hover:text-secondary cursor-pointer disabled:cursor-not-allowed"
@@ -437,13 +458,7 @@ export const EditSessionPage = () => {
                     Loading transcript...
                   </span>
                 </div>
-              ) : transcriptError ? (
-                <div className="bg-red-50 p-4 border border-red-200 rounded-lg">
-                  <p className="text-red-600 text-sm">
-                    ⚠️ Error loading transcript
-                  </p>
-                </div>
-              ) : transcriptData ? (
+              ) : hasTranscriptData ? (
                 <div className="space-y-3 bg-white p-4 rounded-lg max-h-96 overflow-y-auto text-accent text-sm leading-relaxed">
                   {transcriptData.segments &&
                   transcriptData.segments.length > 0 ? (
@@ -475,7 +490,12 @@ export const EditSessionPage = () => {
                   )}
                 </div>
               ) : (
-                <p className="text-accent italic">No transcript available</p>
+                <div className="space-y-3 bg-white p-4 rounded-lg text-accent text-sm leading-relaxed">
+                  <p className="py-4 text-center italic">
+                    No transcript found. Transcription was not enabled or not
+                    found.
+                  </p>
+                </div>
               )}
             </Card>
           )}
@@ -599,34 +619,36 @@ export const EditSessionPage = () => {
           </Card>
 
           {/* VERSION HISTORY */}
-          <Card className="p-6 border border-primary/20">
-            <h2 className="mb-3 text-secondary text-lg sm:text-2xl">
-              VERSION HISTORY
-            </h2>
-            <div className="space-y-2 text-sm">
-              <p className="text-accent">
-                <span className="font-semibold">Current:</span> Version{" "}
-                {latestSoapNote?.version} ({latestSoapNote?.status} - In
-                Progress)
-              </p>
-              <p className="text-accent">
-                <span className="font-semibold">Generated:</span>{" "}
-                {latestSoapNote
-                  ? new Date(latestSoapNote.createdAt).toLocaleDateString(
-                      "en-US",
-                      {
-                        month: "short",
-                        day: "numeric",
-                        year: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      },
-                    )
-                  : "N/A"}{" "}
-                - {latestSoapNote?.generatedBy || "AI"}
-              </p>
-            </div>
-          </Card>
+          {latestSoapNote && (
+            <Card className="p-6 border border-primary/20">
+              <h2 className="mb-3 text-secondary text-lg sm:text-2xl">
+                VERSION HISTORY
+              </h2>
+              <div className="space-y-2 text-sm">
+                <p className="text-accent">
+                  <span className="font-semibold">Current:</span> Version{" "}
+                  {latestSoapNote?.version} ({latestSoapNote?.status} - In
+                  Progress)
+                </p>
+                <p className="text-accent">
+                  <span className="font-semibold">Generated:</span>{" "}
+                  {latestSoapNote
+                    ? new Date(latestSoapNote.createdAt).toLocaleDateString(
+                        "en-US",
+                        {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        },
+                      )
+                    : "N/A"}{" "}
+                  - {latestSoapNote?.generatedBy || "AI"}
+                </p>
+              </div>
+            </Card>
+          )}
 
           {/* Action Buttons */}
           <div className="flex justify-end gap-3">
@@ -641,15 +663,19 @@ export const EditSessionPage = () => {
             >
               {latestSoapNote?.status === "Approved"
                 ? "Back to Session"
-                : "Cancel Changes"}
+                : "Cancel"}
             </Button>
             {latestSoapNote?.status !== "Approved" && (
               <Button
                 onClick={handleSave}
-                disabled={updateSoapNoteMutation.isPending}
+                disabled={
+                  updateSoapNoteMutation.isPending ||
+                  generateSoapNoteMutation.isPending
+                }
                 className="text-white"
               >
-                {updateSoapNoteMutation.isPending ? (
+                {updateSoapNoteMutation.isPending ||
+                generateSoapNoteMutation.isPending ? (
                   <>
                     <Loader2 className="mr-2 w-4 h-4 animate-spin" />
                     Saving...
@@ -667,6 +693,14 @@ export const EditSessionPage = () => {
               <span className="">🔒</span>
               <p className="ml-1 text-xs">
                 This note is approved and locked. You cannot make changes now.
+              </p>
+            </div>
+          ) : !latestSoapNote ? (
+            <div className="flex items-center bg-blue-50 ml-auto p-2 border border-blue-200 rounded-lg text-blue-600 text-sm">
+              <span className="">💡</span>
+              <p className="ml-1 text-xs">
+                You can edit the placeholder text above and use "Regenerate with
+                AI" to create an AI-generated SOAP note.
               </p>
             </div>
           ) : (

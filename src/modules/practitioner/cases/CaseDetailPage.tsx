@@ -46,6 +46,7 @@ export const CaseDetailPage = () => {
   const navigate = useNavigate();
   const [timelineFilter, setTimelineFilter] = useState("");
   const [sessionFilter, setSessionFilter] = useState("");
+  const [loadAllEntries, setLoadAllEntries] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [isGenerateSummaryModalOpen, setIsGenerateSummaryModalOpen] =
@@ -63,6 +64,7 @@ export const CaseDetailPage = () => {
     caseId,
     {
       eventType: timelineFilter,
+      allEntries: loadAllEntries,
     },
   );
 
@@ -77,6 +79,7 @@ export const CaseDetailPage = () => {
   // Extract case info from API response
   const caseInfo = caseData?.case || {};
   const timelineEntries = timelineData?.timeline || [];
+  const paginationInfo = timelineData?.pagination || {};
 
   // Show loading state
   if (loadingCase) {
@@ -502,11 +505,26 @@ export const CaseDetailPage = () => {
         )}
 
         {/* Load Earlier Entries */}
-        <div className="flex justify-center mt-6">
-          <Button variant="link" className="font-semibold">
-            Load Earlier Entries
-          </Button>
-        </div>
+        {!loadAllEntries && paginationInfo.hasMore && (
+          <div className="flex justify-center mt-6">
+            <Button
+              variant="link"
+              className="font-semibold"
+              onClick={() => setLoadAllEntries(true)}
+              disabled={loadingTimeline}
+            >
+              {loadingTimeline ? "Loading..." : "Load Earlier Entries"}
+            </Button>
+          </div>
+        )}
+        {loadAllEntries && (
+          <div className="flex justify-center mt-6">
+            <p className="text-accent text-sm">
+              Showing all {paginationInfo.total || timelineEntries.length}{" "}
+              entries
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Upload File Modal */}

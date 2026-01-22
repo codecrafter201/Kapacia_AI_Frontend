@@ -72,7 +72,12 @@ export const useCaseById = (caseId: string | undefined) => {
 // Get case timeline
 export const useCaseTimeline = (
   caseId: string | undefined,
-  params?: { eventType?: string; startDate?: string; endDate?: string },
+  params?: {
+    eventType?: string;
+    startDate?: string;
+    endDate?: string;
+    allEntries?: boolean;
+  },
 ) => {
   return useQuery({
     queryKey: ["timelinesummary", ...caseKeys.timeline(caseId || ""), params],

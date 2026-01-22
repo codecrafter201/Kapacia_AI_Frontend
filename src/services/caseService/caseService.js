@@ -33,7 +33,7 @@ export const getMyCases = function (params = {}) {
     `/case/my-cases${query ? `?${query}` : ""}`,
     "GET",
     null,
-    true
+    true,
   );
 };
 
@@ -58,13 +58,14 @@ export const getCaseTimeline = function (caseId, params = {}) {
   if (params.eventType) queryParams.append("eventType", params.eventType);
   if (params.startDate) queryParams.append("startDate", params.startDate);
   if (params.endDate) queryParams.append("endDate", params.endDate);
+  if (params.allEntries) queryParams.append("allEntries", "true");
 
   const query = queryParams.toString();
   return GetApiData(
     `/case/${caseId}/timeline${query ? `?${query}` : ""}`,
     "GET",
     null,
-    true
+    true,
   );
 };
 
