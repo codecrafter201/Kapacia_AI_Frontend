@@ -106,6 +106,8 @@ export const useTranscription = () => {
   }, []);
 
   const sendAudioChunk = useCallback((audioChunk: Blob) => {
+    console.log(`[useTranscription] sendAudioChunk called: ${audioChunk.size} bytes`);
+    
     if (!wsRef.current) {
       console.warn("[useTranscription] WebSocket not initialized");
       return;
@@ -116,6 +118,8 @@ export const useTranscription = () => {
       console.warn("[useTranscription] WebSocket not connected yet");
       return;
     }
+
+    console.log("[useTranscription] Sending chunk to WebSocket service");
 
     // Send the chunk
     wsRef.current.sendAudioChunk(audioChunk);

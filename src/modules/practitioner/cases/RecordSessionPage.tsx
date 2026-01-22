@@ -92,7 +92,6 @@ export const RecordSessionPage = () => {
   const recordedBlobRef = useRef<Blob | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
-  console.log("recordedBlob", recordedBlob);
   // const recordPluginRef = useRef<any>(null);
   const recordPluginRef = useRef<ReturnType<typeof RecordPlugin.create> | null>(
     null,
@@ -256,7 +255,8 @@ export const RecordSessionPage = () => {
       if (allowTranscript) {
         await connectTranscription(sessionId);
         // Wait a bit for WebSocket to fully establish
-        await new Promise((resolve) => setTimeout(resolve, 500));
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+        console.log("[Start Recording] Transcription ready");
       }
 
       // Step 5: Set up AudioContext to produce PCM 16k mono for transcription
@@ -270,12 +270,19 @@ export const RecordSessionPage = () => {
       processorRef.current = processorNode;
 
       processorNode.onaudioprocess = (e) => {
-        if (!allowTranscript) return;
+        console.log(`[Audio Processing] allowTranscript: ${allowTranscript}, isTranscriptionConnected: ${isTranscriptionConnected}`);
+        
+        if (!allowTranscript) {
+          console.log("[Audio Processing] allowTranscript is false, skipping audio processing");
+          return;
+        }
 
         try {
           const input = e.inputBuffer.getChannelData(0);
           const inputSampleRate = audioContext.sampleRate;
           const targetSampleRate = 16000;
+
+          console.log(`[Audio Processing] Processing audio: ${input.length} samples at ${inputSampleRate}Hz`);
 
           // Convert and resample to PCM 16-bit at 16kHz
           const pcmData = resampleAudio(
@@ -286,6 +293,8 @@ export const RecordSessionPage = () => {
 
           // Get ArrayBuffer from Int16Array
           const arrayBuffer = pcmData.buffer as ArrayBuffer;
+
+          console.log(`[Audio Processing] PCM data created: ${arrayBuffer.byteLength} bytes`);
 
           // Validate and log (for debugging - remove in production)
           if (validatePCMBuffer(arrayBuffer)) {
@@ -303,8 +312,12 @@ export const RecordSessionPage = () => {
               type: "application/octet-stream",
             });
 
+            console.log(`[Audio Processing] Sending PCM blob: ${pcmBlob.size} bytes`);
+
             // Send to transcription service
             sendAudioChunk(pcmBlob);
+          } else {
+            console.warn("[Audio Processing] Invalid PCM buffer, skipping");
           }
         } catch (error) {
           console.error("[Audio Processing] Error:", error);
@@ -322,6 +335,53 @@ export const RecordSessionPage = () => {
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
 
+      const mediaRecorderStopPromise = new Promise<Blob>((resolve) => {
+        mediaRecorder.onstop = () => {
+          console.log("[MediaRecorder] Stop event fired");
+
+          const finalBlob = new Blob(audioChunksRef.current, {
+            type: "audio/webm",
+          });
+
+          console.log("[MediaRecorder] Blob created:", {
+            size: finalBlob.size,
+            type: finalBlob.type,
+            chunks: audioChunksRef.current.length,
+          });
+
+          recordedBlobRef.current = finalBlob;
+          setRecordedBlob(finalBlob);
+          setFileSizeMb(formatBytesToMb(finalBlob.size));
+
+          stream.getTracks().forEach((track) => track.stop());
+
+          // Clean up audio nodes
+          if (processorRef.current) {
+            processorRef.current.disconnect();
+            processorRef.current = null;
+          }
+          if (audioSourceRef.current) {
+            audioSourceRef.current.disconnect();
+            audioSourceRef.current = null;
+          }
+          if (
+            audioContextRef.current &&
+            audioContextRef.current.state !== "closed"
+          ) {
+            audioContextRef.current
+              .close()
+              .catch((err) =>
+                console.warn("[Audio] AudioContext close error:", err),
+              );
+            audioContextRef.current = null;
+          }
+
+          resolve(finalBlob);
+        };
+      });
+
+      (mediaRecorder as any).stopPromise = mediaRecorderStopPromise;
+
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
           audioChunksRef.current.push(event.data);
@@ -330,27 +390,18 @@ export const RecordSessionPage = () => {
             0,
           );
           setFileSizeMb(formatBytesToMb(totalBytes));
+
+          // Log every 10 chunks
+          if (audioChunksRef.current.length % 10 === 0) {
+            console.log(
+              `[MediaRecorder] Collected ${audioChunksRef.current.length} chunks, ${formatBytesToMb(totalBytes)}`,
+            );
+          }
         }
       };
 
-      mediaRecorder.onstop = () => {
-        const finalBlob = new Blob(audioChunksRef.current, {
-          type: "audio/webm",
-        });
-        recordedBlobRef.current = finalBlob;
-        setRecordedBlob(finalBlob);
-        setFileSizeMb(formatBytesToMb(finalBlob.size));
-        console.log("Recorded blob:", finalBlob);
-
-        stream.getTracks().forEach((track) => track.stop());
-
-        // Clean up audio nodes
-        processorNode.disconnect();
-        sourceNode.disconnect();
-        audioContext.close();
-        audioContextRef.current = null;
-        audioSourceRef.current = null;
-        processorRef.current = null;
+      mediaRecorder.onerror = (error) => {
+        console.error("[MediaRecorder] Error:", error);
       };
 
       mediaRecorder.start(1000);
@@ -393,6 +444,255 @@ export const RecordSessionPage = () => {
   //   // Add stop recording logic here
   // };
 
+  // const handleStopRecording = async () => {
+  //   if (!currentSessionId) return;
+
+  //   // Show SweetAlert confirmation
+  //   const result = await Swal.fire({
+  //     title: "Stop Recording?",
+  //     text: "Are you sure you want to stop recording and save this session?",
+  //     icon: "warning",
+  //     showCancelButton: true,
+  //     confirmButtonColor: "#188aec",
+  //     cancelButtonColor: "#ff0105",
+  //     confirmButtonText: "Yes, Stop & Save",
+  //     cancelButtonText: "Cancel",
+  //     allowOutsideClick: false,
+  //     allowEscapeKey: false,
+  //   });
+
+  //   // If user cancels, return
+  //   if (!result.isConfirmed) {
+  //     console.log("[Stop Recording] User cancelled");
+  //     return;
+  //   }
+
+  //   // Show loading dialog
+  //   Swal.fire({
+  //     title: "Processing Recording...",
+  //     text: "Please wait while we upload and save your recording.",
+  //     icon: "info",
+  //     allowOutsideClick: false,
+  //     allowEscapeKey: false,
+  //     didOpen: async () => {
+  //       Swal.showLoading();
+
+  //       try {
+  //         // Stop MediaRecorder
+  //         if (
+  //           mediaRecorderRef.current &&
+  //           mediaRecorderRef.current.state !== "inactive"
+  //         ) {
+  //           mediaRecorderRef.current.stop();
+  //         }
+
+  //         // Stop WaveSurfer recording (if used)
+  //         if (recordPluginRef.current) {
+  //           await recordPluginRef.current.stopRecording();
+  //         }
+
+  //         // Cleanup audio context and nodes if still present
+  //         if (processorRef.current) {
+  //           processorRef.current.disconnect();
+  //           processorRef.current = null;
+  //         }
+  //         if (audioSourceRef.current) {
+  //           audioSourceRef.current.disconnect();
+  //           audioSourceRef.current = null;
+  //         }
+  //         // Don't close AudioContext yet - let it finish processing
+  //         // We'll close it after blob is ready
+
+  //         // Disconnect transcription WebSocket
+  //         if (allowTranscript) {
+  //           console.log("[Stop Recording] Disconnecting transcription...");
+  //           disconnectTranscription();
+  //         }
+
+  //         stopTimer();
+  //         elapsedSecondsRef.current = 0;
+  //         setIsRecording(false);
+  //         setIsPaused(false);
+
+  //         // Calculate duration - use ref to avoid Date.now() in render
+  //         const durationSeconds = recordingStartTimeRef.current
+  //           ? Math.floor(
+  //               (Date.now() -
+  //                 recordingStartTimeRef.current -
+  //                 totalPausedTimeRef.current) /
+  //                 1000,
+  //             )
+  //           : 0;
+
+  //         // Wait for the blob to be ready (use ref, not state which is async)
+  //         let attempts = 0;
+  //         while (!recordedBlobRef.current && attempts < 50) {
+  //           await new Promise((resolve) => setTimeout(resolve, 10));
+  //           attempts++;
+  //         }
+
+  //         if (!recordedBlobRef.current) {
+  //           throw new Error("No audio recording found after timeout");
+  //         }
+
+  //         console.log(
+  //           "[Stop Recording] Blob ready:",
+  //           recordedBlobRef.current.size,
+  //           "bytes",
+  //         );
+
+  //         // NOW close the audio context after blob is ready
+  //         if (
+  //           audioContextRef.current &&
+  //           audioContextRef.current.state !== "closed"
+  //         ) {
+  //           try {
+  //             await audioContextRef.current.close();
+  //           } catch (err) {
+  //             console.warn(
+  //               "[Stop Recording] AudioContext already closed:",
+  //               err,
+  //             );
+  //           }
+  //           audioContextRef.current = null;
+  //         }
+
+  //         const audioFileSizeBytes = recordedBlobRef.current.size;
+
+  //         // Create FormData and send blob to backend for S3 upload
+  //         const formData = new FormData();
+  //         formData.append("sessionId", currentSessionId);
+  //         formData.append(
+  //           "audio",
+  //           recordedBlobRef.current,
+  //           `session-${currentSessionId}.webm`,
+  //         );
+  //         formData.append("durationSeconds", durationSeconds.toString());
+  //         formData.append("audioFileSizeBytes", audioFileSizeBytes.toString());
+
+  //         console.log("[Stop Recording] Uploading audio to S3...");
+
+  //         // Upload using the hook mutation
+  //         const uploadData = await uploadRecordingMutation.mutateAsync({
+  //           sessionId: currentSessionId,
+  //           formData,
+  //         });
+
+  //         console.log("[Stop Recording] S3 upload successful:", uploadData);
+
+  //         const uploadedAudioUrl =
+  //           uploadData?.session?.audioUrl || uploadData?.audioUrl;
+
+  //         console.log(
+  //           "[Stop Recording] Finalizing session...",
+  //           uploadedAudioUrl,
+  //         );
+
+  //         if (!uploadedAudioUrl) {
+  //           throw new Error("Audio URL missing from upload response");
+  //         }
+
+  //         // Update session with recording data (audioUrl should come from backend S3 response)
+  //         await stopRecordingMutation.mutateAsync({
+  //           sessionId: currentSessionId,
+  //           data: {
+  //             audioUrl: uploadedAudioUrl,
+  //             audioFileSizeBytes,
+  //             durationSeconds,
+  //           },
+  //         });
+
+  //         // Save transcript with all collected transcript entries
+  //         let transcriptTextForSoap = "";
+  //         if (transcriptEntries.length > 0) {
+  //           console.log(
+  //             "[Stop Recording] Saving transcript with entries:",
+  //             transcriptEntries.length,
+  //           );
+
+  //           // Format transcript text from entries
+  //           const transcriptText = transcriptEntries
+  //             .map(
+  //               (entry) =>
+  //                 `[${entry.timestamp}] ${entry.speaker}: ${entry.text}`,
+  //             )
+  //             .join("\n");
+
+  //           const wordCount = transcriptText.split(/\s+/).length;
+  //           transcriptTextForSoap = transcriptText;
+
+  //           try {
+  //             const transcriptResult =
+  //               await createTranscriptMutation.mutateAsync({
+  //                 sessionId: currentSessionId,
+  //                 rawText: transcriptText,
+  //                 wordCount,
+  //                 languageDetected: sessionLanguage,
+  //                 segments: transcriptEntries,
+  //                 status: "Draft",
+  //               });
+  //             console.log(
+  //               "[Stop Recording] Transcript saved successfully",
+  //               transcriptResult,
+  //             );
+  //           } catch (transcriptError) {
+  //             console.error(
+  //               "[Stop Recording] Failed to save transcript:",
+  //               transcriptError,
+  //             );
+  //             // Continue anyway - transcript error shouldn't block the session save
+  //           }
+  //         }
+
+  //         // Generate SOAP note (using transcript if available, or let backend fetch it)
+  //         try {
+  //           console.log("[Stop Recording] Generating SOAP note...");
+  //           const soapPayload: any = {
+  //             sessionId: currentSessionId,
+  //             framework: "SOAP",
+  //             temperature: 0.2,
+  //             maxTokens: 1200,
+  //           };
+
+  //           // Include transcript text if we have it
+  //           if (transcriptTextForSoap) {
+  //             soapPayload.transcriptText = transcriptTextForSoap;
+  //           }
+
+  //           const soapResult =
+  //             await generateSoapNoteMutation.mutateAsync(soapPayload);
+  //           console.log("[Stop Recording] SOAP note generated:", soapResult);
+  //         } catch (soapError) {
+  //           console.error(
+  //             "[Stop Recording] Failed to generate SOAP note:",
+  //             soapError,
+  //           );
+  //           // Continue anyway - SOAP generation error shouldn't block the session save
+  //         }
+
+  //         Swal.fire({
+  //           title: "Success!",
+  //           text: "Recording has been saved successfully.",
+  //           icon: "success",
+  //           confirmButtonColor: "#188aec",
+  //         });
+  //         handleSaveSession();
+  //       } catch (error) {
+  //         console.error("Failed to stop recording:", error);
+  //         Swal.fire({
+  //           title: "Error",
+  //           text:
+  //             error instanceof Error
+  //               ? error.message
+  //               : "Failed to save recording. Please try again.",
+  //           icon: "error",
+  //           confirmButtonColor: "#188aec",
+  //         });
+  //       }
+  //     },
+  //   });
+  // };
+  // 3. Fix handleStopRecording to properly wait for the blob
   const handleStopRecording = async () => {
     if (!currentSessionId) return;
 
@@ -410,7 +710,6 @@ export const RecordSessionPage = () => {
       allowEscapeKey: false,
     });
 
-    // If user cancels, return
     if (!result.isConfirmed) {
       console.log("[Stop Recording] User cancelled");
       return;
@@ -419,7 +718,7 @@ export const RecordSessionPage = () => {
     // Show loading dialog
     Swal.fire({
       title: "Processing Recording...",
-      text: "Please wait while we upload and save your recording.",
+      text: "Please wait while we finalize your recording.",
       icon: "info",
       allowOutsideClick: false,
       allowEscapeKey: false,
@@ -427,43 +726,21 @@ export const RecordSessionPage = () => {
         Swal.showLoading();
 
         try {
-          // Stop MediaRecorder
-          if (
-            mediaRecorderRef.current &&
-            mediaRecorderRef.current.state !== "inactive"
-          ) {
-            mediaRecorderRef.current.stop();
-          }
+          console.log("[Stop Recording] Initiating stop sequence...");
 
-          // Stop WaveSurfer recording (if used)
-          if (recordPluginRef.current) {
-            await recordPluginRef.current.stopRecording();
-          }
-
-          // Cleanup audio context and nodes if still present
-          if (processorRef.current) {
-            processorRef.current.disconnect();
-            processorRef.current = null;
-          }
-          if (audioSourceRef.current) {
-            audioSourceRef.current.disconnect();
-            audioSourceRef.current = null;
-          }
-          // Don't close AudioContext yet - let it finish processing
-          // We'll close it after blob is ready
-
-          // Disconnect transcription WebSocket
+          // Disconnect transcription WebSocket FIRST
           if (allowTranscript) {
             console.log("[Stop Recording] Disconnecting transcription...");
             disconnectTranscription();
           }
 
+          // Stop timer
           stopTimer();
           elapsedSecondsRef.current = 0;
           setIsRecording(false);
           setIsPaused(false);
 
-          // Calculate duration - use ref to avoid Date.now() in render
+          // Calculate duration
           const durationSeconds = recordingStartTimeRef.current
             ? Math.floor(
                 (Date.now() -
@@ -473,53 +750,106 @@ export const RecordSessionPage = () => {
               )
             : 0;
 
-          // Wait for the blob to be ready (use ref, not state which is async)
-          let attempts = 0;
-          while (!recordedBlobRef.current && attempts < 50) {
-            await new Promise((resolve) => setTimeout(resolve, 10));
-            attempts++;
+          console.log(`[Stop Recording] Session duration: ${durationSeconds}s`);
+
+          // CRITICAL: Stop MediaRecorder and WAIT for blob
+          let finalBlob: Blob | null = null;
+
+          if (mediaRecorderRef.current) {
+            const mediaRecorder = mediaRecorderRef.current;
+
+            if (mediaRecorder.state !== "inactive") {
+              console.log("[Stop Recording] Stopping MediaRecorder...");
+
+              // Get the promise we stored earlier
+              const stopPromise = (mediaRecorder as any).stopPromise;
+
+              // Stop the recorder
+              mediaRecorder.stop();
+
+              // Wait for the onstop event and blob creation
+              if (stopPromise) {
+                console.log("[Stop Recording] Waiting for blob...");
+                finalBlob = await Promise.race([
+                  stopPromise,
+                  new Promise<Blob>((_, reject) =>
+                    setTimeout(
+                      () => reject(new Error("Blob creation timeout")),
+                      5000,
+                    ),
+                  ),
+                ]);
+                console.log(
+                  "[Stop Recording] Blob received from promise:",
+                  finalBlob.size,
+                );
+              } else {
+                // Fallback: wait for ref to be populated
+                let attempts = 0;
+                while (!recordedBlobRef.current && attempts < 100) {
+                  await new Promise((resolve) => setTimeout(resolve, 50));
+                  attempts++;
+                }
+                finalBlob = recordedBlobRef.current;
+                console.log(
+                  "[Stop Recording] Blob received from ref after",
+                  attempts * 50,
+                  "ms",
+                );
+              }
+            } else {
+              console.log("[Stop Recording] MediaRecorder already inactive");
+              finalBlob = recordedBlobRef.current;
+            }
           }
 
-          if (!recordedBlobRef.current) {
-            throw new Error("No audio recording found after timeout");
+          // Verify we have a blob
+          if (!finalBlob) {
+            throw new Error("No audio recording found - blob is null");
+          }
+
+          if (finalBlob.size === 0) {
+            throw new Error("Audio recording is empty (0 bytes)");
           }
 
           console.log(
-            "[Stop Recording] Blob ready:",
-            recordedBlobRef.current.size,
-            "bytes",
+            "[Stop Recording] Final blob ready:",
+            finalBlob.size,
+            "bytes (",
+            formatBytesToMb(finalBlob.size),
+            ")",
           );
 
-          // NOW close the audio context after blob is ready
-          if (
-            audioContextRef.current &&
-            audioContextRef.current.state !== "closed"
-          ) {
-            try {
-              await audioContextRef.current.close();
-            } catch (err) {
-              console.warn(
-                "[Stop Recording] AudioContext already closed:",
-                err,
-              );
-            }
-            audioContextRef.current = null;
-          }
+          const audioFileSizeBytes = finalBlob.size;
 
-          const audioFileSizeBytes = recordedBlobRef.current.size;
+          // Stop WaveSurfer recording (if used)
+          if (recordPluginRef.current) {
+            try {
+              await recordPluginRef.current.stopRecording();
+              console.log("[Stop Recording] WaveSurfer stopped");
+            } catch (err) {
+              console.warn("[Stop Recording] WaveSurfer stop error:", err);
+            }
+          }
 
           // Create FormData and send blob to backend for S3 upload
           const formData = new FormData();
           formData.append("sessionId", currentSessionId);
           formData.append(
             "audio",
-            recordedBlobRef.current,
+            finalBlob,
             `session-${currentSessionId}.webm`,
           );
           formData.append("durationSeconds", durationSeconds.toString());
           formData.append("audioFileSizeBytes", audioFileSizeBytes.toString());
 
           console.log("[Stop Recording] Uploading audio to S3...");
+          console.log("[Stop Recording] FormData contents:", {
+            sessionId: currentSessionId,
+            fileName: `session-${currentSessionId}.webm`,
+            blobSize: finalBlob.size,
+            durationSeconds,
+          });
 
           // Upload using the hook mutation
           const uploadData = await uploadRecordingMutation.mutateAsync({
@@ -541,7 +871,7 @@ export const RecordSessionPage = () => {
             throw new Error("Audio URL missing from upload response");
           }
 
-          // Update session with recording data (audioUrl should come from backend S3 response)
+          // Update session with recording data
           await stopRecordingMutation.mutateAsync({
             sessionId: currentSessionId,
             data: {
@@ -559,7 +889,6 @@ export const RecordSessionPage = () => {
               transcriptEntries.length,
             );
 
-            // Format transcript text from entries
             const transcriptText = transcriptEntries
               .map(
                 (entry) =>
@@ -589,11 +918,10 @@ export const RecordSessionPage = () => {
                 "[Stop Recording] Failed to save transcript:",
                 transcriptError,
               );
-              // Continue anyway - transcript error shouldn't block the session save
             }
           }
 
-          // Generate SOAP note (using transcript if available, or let backend fetch it)
+          // Generate SOAP note
           try {
             console.log("[Stop Recording] Generating SOAP note...");
             const soapPayload: any = {
@@ -603,7 +931,6 @@ export const RecordSessionPage = () => {
               maxTokens: 1200,
             };
 
-            // Include transcript text if we have it
             if (transcriptTextForSoap) {
               soapPayload.transcriptText = transcriptTextForSoap;
             }
@@ -616,7 +943,6 @@ export const RecordSessionPage = () => {
               "[Stop Recording] Failed to generate SOAP note:",
               soapError,
             );
-            // Continue anyway - SOAP generation error shouldn't block the session save
           }
 
           Swal.fire({

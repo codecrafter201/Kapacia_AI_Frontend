@@ -13,7 +13,18 @@ export function validatePCMBuffer(buffer: ArrayBuffer): boolean {
 
   // PCM 16-bit should have even number of bytes
   if (buffer.byteLength % 2 !== 0) {
-    console.error("[Audio] Invalid PCM buffer size (not divisible by 2)");
+    console.error("[Audio] Invalid PCM buffer size (not divisible by 2):", buffer.byteLength);
+    return false;
+  }
+
+  // Check for reasonable buffer size (not too small, not too large)
+  if (buffer.byteLength < 64) {
+    console.warn("[Audio] Very small buffer:", buffer.byteLength, "bytes");
+    return false;
+  }
+
+  if (buffer.byteLength > 1024 * 1024) { // 1MB limit
+    console.warn("[Audio] Very large buffer:", buffer.byteLength, "bytes");
     return false;
   }
 
@@ -27,9 +38,17 @@ export function float32ToPCM16(float32Array: Float32Array): Int16Array {
   const int16Array = new Int16Array(float32Array.length);
   
   for (let i = 0; i < float32Array.length; i++) {
-    // Clamp the value between -1 and 1
-    const sample = Math.max(-1, Math.min(1, float32Array[i]));
-    // Convert to 16-bit PCM
+    // Clamp the value between -1 and 1 with better precision
+    let sample = float32Array[i];
+    
+    // Handle NaN and Infinity
+    if (!isFinite(sample)) {
+      sample = 0;
+    } else {
+      sample = Math.max(-1, Math.min(1, sample));
+    }
+    
+    // Convert to 16-bit PCM with proper scaling
     int16Array[i] = sample < 0 ? sample * 0x8000 : sample * 0x7fff;
   }
   
