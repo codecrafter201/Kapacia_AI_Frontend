@@ -37,6 +37,8 @@ export const useMyCases = (params?: {
   search?: string;
   status?: string;
   sortBy?: string;
+  limit?: string;
+  page?: string;
 }) => {
   return useQuery({
     queryKey: [...caseKeys.myCases(), params],
@@ -47,6 +49,11 @@ export const useMyCases = (params?: {
       return response.data;
     },
   });
+};
+
+// Dashboard preview: fetch only a few cases for cards
+export const useMyCasesPreview = (limit = "2") => {
+  return useMyCases({ limit, sortBy: "lastSession" });
 };
 
 // Get case by ID

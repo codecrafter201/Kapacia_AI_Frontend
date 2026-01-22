@@ -10,11 +10,16 @@ import {
   ChevronLeft,
   Download,
   RefreshCw,
-  Share2,
   Loader2,
   AlertCircle,
 } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import remarkBreaks from "remark-breaks";
 import Swal from "sweetalert2";
+import { useRef, useState } from "react";
+import { pdf } from "@react-pdf/renderer";
+import { SummaryPDFDocument } from "@/components/SummaryPDFDocument";
 
 export const SummaryDetailPage = () => {
   const { caseId, summaryId } = useParams();
@@ -25,6 +30,9 @@ export const SummaryDetailPage = () => {
   const { mutate: regenerateSummary, isPending: regenerating } =
     useGenerateTimelineSummary();
 
+  const [exporting, setExporting] = useState(false);
+  const printRef = useRef<HTMLDivElement>(null);
+
   // Fetch summary data
   const {
     data: summaryData,
@@ -33,6 +41,67 @@ export const SummaryDetailPage = () => {
   } = useTimelineSummaryById(summaryId);
 
   const summary = summaryData?.summary;
+
+  // Normalize markdown to avoid excessive blank gaps
+  const normalizeMarkdown = (s?: string) => {
+    if (!s) return "";
+    let t = s.replace(/\r\n/g, "\n"); // normalize CRLF → LF
+    // Remove orphan list markers like "7." or lone "-" / "*"
+    t = t
+      .split("\n")
+      .filter(
+        (line) =>
+          !/^\s*\d+\.\s*$/.test(line) && // lines that are only a number followed by a dot
+          !/^\s*[-*]\s*$/.test(line), // lines that are only a dash or asterisk
+      )
+      .join("\n");
+    // Collapse excessive blank lines and trim
+    t = t.replace(/\n{3,}/g, "\n\n").trim();
+    return t;
+  };
+
+  // Controlled spacing for markdown elements
+  const markdownComponents = {
+    p: (props: any) => (
+      <p
+        className="mb-3 last:mb-0 wrap-break-words leading-relaxed"
+        {...props}
+      />
+    ),
+    h1: (props: any) => (
+      <h1
+        className="mt-6 mb-2 font-semibold text-secondary text-xl"
+        {...props}
+      />
+    ),
+    h2: (props: any) => (
+      <h2
+        className="mt-6 mb-2 font-semibold text-secondary text-lg"
+        {...props}
+      />
+    ),
+    h3: (props: any) => (
+      <h3
+        className="mt-5 mb-2 font-semibold text-secondary text-base"
+        {...props}
+      />
+    ),
+    ul: (props: any) => (
+      <ul className="space-y-1 mb-3 pl-5 list-disc" {...props} />
+    ),
+    ol: (props: any) => (
+      <ol className="space-y-1 mb-3 pl-5 list-decimal" {...props} />
+    ),
+    li: (props: any) => <li className="leading-relaxed" {...props} />,
+    blockquote: (props: any) => (
+      <blockquote
+        className="my-3 pl-3 border-border border-l-2 text-accent/80"
+        {...props}
+      />
+    ),
+    hr: () => <hr className="my-4 border-border" />,
+    br: () => <br />,
+  } as const;
 
   const handleApprove = () => {
     if (!summaryId) return;
@@ -80,19 +149,49 @@ export const SummaryDetailPage = () => {
     );
   };
 
-  // const progressData = {
-  //   panicAttackFrequency: [
-  //     { session: 1, value: 80, label: "6-8 per week" },
-  //     { session: 2, value: 60, label: "3-4 per week" },
-  //     { session: 3, value: 40, label: "2 per week" },
-  //     { session: 4, value: 30, label: "1 per week" },
-  //     { session: 5, value: 20, label: "1 per week" },
-  //   ],
-  //   sleepQuality: [
-  //     { session: 4, hours: "4-5 hours" },
-  //     { session: 5, hours: "6-7 hours" },
-  //   ],
-  // };
+  const handleExportPdf = async () => {
+    if (!summary) return;
+
+    try {
+      setExporting(true);
+
+      // Generate PDF blob
+      const blob = await pdf(<SummaryPDFDocument summary={summary} />).toBlob();
+
+      // Create download link
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+
+      const start = new Date(summary.periodStart).toISOString().slice(0, 10);
+      const end = new Date(summary.periodEnd).toISOString().slice(0, 10);
+      const filename = `Timeline_Summary_v${summary.version}_${start}_to_${end}.pdf`;
+
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      // Clean up
+      URL.revokeObjectURL(url);
+
+      Swal.fire({
+        icon: "success",
+        title: "Success",
+        text: "PDF exported successfully",
+        showConfirmButton: false,
+        timer: 1500,
+      });
+    } catch (e) {
+      Swal.fire({
+        icon: "error",
+        title: "Export failed",
+        text: e instanceof Error ? e.message : "Unable to create PDF",
+      });
+    } finally {
+      setExporting(false);
+    }
+  };
 
   return (
     <div className="space-y-6 w-full">
@@ -137,133 +236,149 @@ export const SummaryDetailPage = () => {
                 </p>
               </div>
 
-              <div className="flex flex-wrap gap-2">
-                <Button className="flex items-center gap-2 text-white">
-                  <Download className="w-4 h-4" />
-                  Export Summary
-                </Button>
-                <Button
-                  onClick={handleRegenerate}
-                  variant="link"
-                  className="flex items-center gap-2"
-                  disabled={regenerating}
-                >
-                  <RefreshCw
-                    className={`w-4 h-4 ${regenerating ? "animate-spin" : ""}`}
-                  />
-                  {regenerating ? "Regenerating..." : "Regenerate"}
-                </Button>
-                <Button variant="link" className="flex items-center gap-2">
+              <div className="flex flex-wrap justify-between gap-2 w-full">
+                <div className="flex gap-3">
+                  <Button
+                    onClick={handleExportPdf}
+                    className="flex items-center gap-2 text-white"
+                    disabled={exporting}
+                  >
+                    <Download className="w-4 h-4" />
+                    {exporting ? "Exporting..." : "Export Summary"}
+                  </Button>
+                  <Button
+                    onClick={handleRegenerate}
+                    variant="link"
+                    className="flex items-center gap-2"
+                    disabled={regenerating}
+                  >
+                    <RefreshCw
+                      className={`w-4 h-4 ${regenerating ? "animate-spin" : ""}`}
+                    />
+                    {regenerating ? "Regenerating..." : "Regenerate"}
+                  </Button>
+                </div>
+                {/* <Button variant="link" className="flex items-center gap-2">
                   <Share2 className="w-4 h-4" />
                   Share with Supervisor
+                </Button> */}
+                <Button
+                  onClick={handleApprove}
+                  className="text-white"
+                  disabled={approving || summary.status === "Approved"}
+                >
+                  {summary.status === "Approved"
+                    ? "Already Approved"
+                    : approving
+                      ? "Approving..."
+                      : "Approve Summary"}
                 </Button>
               </div>
             </div>
 
             {/* Summary Info */}
-            <Card className="bg-primary/10 mt-6 p-6 border-primary/20">
-              <h2 className="text-gray-900 text-lg sm:text-2xl">
-                TIMELINE SUMMARY INFO
-              </h2>
-              <div className="space-y-1 mt-4 text-secondary text-sm">
-                <p>
-                  <span className="font-medium">Generated:</span>{" "}
-                  {new Date(summary.createdAt).toLocaleDateString("en-US")}
-                </p>
-                {summary.approvedBy && (
+            <div ref={printRef} className="mt-6">
+              <Card className="bg-primary/10 p-6 border-primary/20">
+                <h2 className="text-gray-900 text-lg sm:text-2xl">
+                  TIMELINE SUMMARY INFO
+                </h2>
+                <div className="space-y-1 mt-4 text-secondary text-sm">
                   <p>
-                    <span className="font-medium">Approved by:</span>{" "}
-                    {summary.approvedBy.name} on{" "}
-                    {new Date(summary.approvedAt).toLocaleString("en-US")}
+                    <span className="font-medium">Generated:</span>{" "}
+                    {new Date(summary.createdAt).toLocaleDateString("en-US")}
                   </p>
-                )}
-                <p>
-                  <span className="font-medium">Coverage:</span>{" "}
-                  {summary.sessionCount} sessions (
-                  {new Date(summary.periodStart).toLocaleDateString("en-US")} -
-                  {new Date(summary.periodEnd).toLocaleDateString("en-US")})
-                </p>
-                <p>
-                  <span className="font-medium">Included:</span>{" "}
-                  {summary.sessionCount} SOAP notes, {summary.fileCount}{" "}
-                  uploaded files
-                </p>
-                <p>
-                  <span className="font-medium">Version:</span>{" "}
-                  {summary.version}
-                </p>
-                <p>
-                  <span className="font-medium">Generated by:</span>{" "}
-                  {summary.generatedBy?.name || "System"}
-                </p>
-              </div>
-            </Card>
-
-            {/* Timeline Summary */}
-            <Card className="">
-              <h2 className="text-secondary text-lg sm:text-2xl">
-                Timeline Summary Details
-              </h2>
-
-              <div className="space-y-6">
-                {/* Full Summary Text */}
-                <div className="bg-gray-50 p-4 border border-border rounded-lg">
-                  <p className="text-accent text-sm leading-relaxed whitespace-pre-wrap">
-                    {summary.summaryText || "No summary text available"}
+                  {summary.approvedBy && (
+                    <p>
+                      <span className="font-medium">Approved by:</span>{" "}
+                      {summary.approvedBy.name} on{" "}
+                      {new Date(summary.approvedAt).toLocaleString("en-US")}
+                    </p>
+                  )}
+                  <p>
+                    <span className="font-medium">Coverage:</span>{" "}
+                    {summary.sessionCount} sessions (
+                    {new Date(summary.periodStart).toLocaleDateString("en-US")}{" "}
+                    -{new Date(summary.periodEnd).toLocaleDateString("en-US")})
+                  </p>
+                  <p>
+                    <span className="font-medium">Included:</span>{" "}
+                    {summary.sessionCount} SOAP notes, {summary.fileCount}{" "}
+                    uploaded files
+                  </p>
+                  <p>
+                    <span className="font-medium">Version:</span>{" "}
+                    {summary.version}
+                  </p>
+                  <p>
+                    <span className="font-medium">Generated by:</span>{" "}
+                    {summary.generatedBy?.name || "System"}
                   </p>
                 </div>
+              </Card>
 
-                {/* Summary Sections */}
-                {summary.summaryContent?.sections && (
-                  <>
-                    <div className="pt-6 border-t">
-                      <h3 className="mb-4 font-medium text-secondary text-lg">
-                        Summary Sections
-                      </h3>
-                      <div className="space-y-4">
-                        {summary.summaryContent?.sections &&
-                          Object.keys(summary.summaryContent.sections).map(
-                            (key: string) => {
-                              const value =
-                                summary.summaryContent.sections[key];
-                              return (
-                                <div
-                                  key={key}
-                                  className="bg-gray-50 p-4 border border-border rounded-lg"
-                                >
-                                  <h4 className="mb-2 font-semibold text-secondary text-sm uppercase">
-                                    {key
-                                      .replace(/([A-Z])/g, " $1")
-                                      .replace(/^./, (str) => str.toUpperCase())
-                                      .trim()}
-                                  </h4>
-                                  <p className="text-accent text-sm leading-relaxed">
-                                    {value || "No content provided."}
-                                  </p>
-                                </div>
-                              );
-                            },
-                          )}
+              {/* Timeline Summary */}
+              <Card className="mt-6">
+                <h2 className="text-secondary text-lg sm:text-2xl">
+                  Timeline Summary Details
+                </h2>
+
+                <div className="space-y-6">
+                  {/* Full Summary Text */}
+                  <div className="bg-gray-50 p-4 border border-border rounded-lg">
+                    <ReactMarkdown
+                      remarkPlugins={[remarkGfm, remarkBreaks]}
+                      className="max-w-none text-accent text-sm"
+                      components={markdownComponents}
+                    >
+                      {normalizeMarkdown(summary.summaryText) ||
+                        "No summary text available"}
+                    </ReactMarkdown>
+                  </div>
+
+                  {/* Summary Sections */}
+                  {summary.summaryContent?.sections && (
+                    <>
+                      <div className="pt-6 border-t">
+                        <h3 className="mb-4 font-medium text-secondary text-lg">
+                          Summary Sections
+                        </h3>
+                        <div className="space-y-4">
+                          {summary.summaryContent?.sections &&
+                            Object.keys(summary.summaryContent.sections).map(
+                              (key: string) => {
+                                const value =
+                                  summary.summaryContent.sections[key];
+                                return (
+                                  <div
+                                    key={key}
+                                    className="bg-gray-50 p-4 border border-border rounded-lg"
+                                  >
+                                    <h4 className="mb-2 font-semibold text-secondary text-sm uppercase">
+                                      {key
+                                        .replace(/([A-Z])/g, " $1")
+                                        .replace(/^./, (str) =>
+                                          str.toUpperCase(),
+                                        )
+                                        .trim()}
+                                    </h4>
+                                    <ReactMarkdown
+                                      remarkPlugins={[remarkGfm, remarkBreaks]}
+                                      className="max-w-none text-accent text-sm"
+                                      components={markdownComponents}
+                                    >
+                                      {normalizeMarkdown(value) ||
+                                        "No content provided."}
+                                    </ReactMarkdown>
+                                  </div>
+                                );
+                              },
+                            )}
+                        </div>
                       </div>
-                    </div>
-                  </>
-                )}
-              </div>
-            </Card>
-
-            {/* Approve Summary Button */}
-            <div className="flex justify-end">
-              <Button
-                onClick={handleApprove}
-                className="text-white"
-                disabled={approving || summary.status === "Approved"}
-              >
-                {summary.status === "Approved"
-                  ? "Already Approved"
-                  : approving
-                    ? "Approving..."
-                    : "Approve Summary"}
-              </Button>
+                    </>
+                  )}
+                </div>
+              </Card>
             </div>
           </>
         )}

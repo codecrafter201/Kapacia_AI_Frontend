@@ -9,6 +9,7 @@ import {
   useSessionById,
   useDeleteSession,
   useUpdateSession,
+  useSessionAudioUrl,
 } from "@/hooks/useSessions";
 import { useTranscriptBySession } from "@/hooks/useTranscript";
 import { useSoapNotesBySession, useApproveSoapNote } from "@/hooks/useSoap";
@@ -53,6 +54,8 @@ export const SessionViewPage = () => {
     isLoading: loadingSession,
     isError: sessionError,
   } = useSessionById(sessionId);
+  const { data: presignedAudio, refetch: refetchAudioUrl } =
+    useSessionAudioUrl(sessionId);
   const deleteSessionMutation = useDeleteSession();
   const updateSessionMutation = useUpdateSession();
 
@@ -234,7 +237,8 @@ export const SessionViewPage = () => {
       ws.load("/audio/recording.ogg");
     };
 
-    const resolvedAudioUrl = sessionData?.audioUrl || audioUrl;
+    const resolvedAudioUrl =
+      (presignedAudio as any)?.url || sessionData?.audioUrl || audioUrl;
 
     // Prefer blob (from navigation state), then backend audioUrl, else fallback
     if (audioBlob) {
@@ -267,9 +271,27 @@ export const SessionViewPage = () => {
 
     ws.on("error", (err) => {
       console.error("WaveSurfer error:", err);
-      if (resolvedAudioUrl !== "/audio/recording.ogg") {
-        loadPublicAudio();
-      }
+      // On auth/expired URL errors, refetch a new presigned URL and retry once
+      refetchAudioUrl()
+        .then((r) => {
+          const freshUrl = (r.data as any)?.url;
+          if (freshUrl) {
+            try {
+              ws.load(freshUrl);
+              return;
+            } catch (_) {
+              // fallthrough to public audio
+            }
+          }
+          if (resolvedAudioUrl !== "/audio/recording.ogg") {
+            loadPublicAudio();
+          }
+        })
+        .catch(() => {
+          if (resolvedAudioUrl !== "/audio/recording.ogg") {
+            loadPublicAudio();
+          }
+        });
     });
 
     ws.on("play", () => setIsPlaying(true));
@@ -281,7 +303,12 @@ export const SessionViewPage = () => {
       ws.destroy();
       waveSurferRef.current = null;
     };
-  }, [audioBlob, audioUrl, sessionData?.audioUrl]);
+  }, [
+    audioBlob,
+    audioUrl,
+    sessionData?.audioUrl,
+    (presignedAudio as any)?.url,
+  ]);
 
   useEffect(() => {
     return () => {
@@ -291,7 +318,8 @@ export const SessionViewPage = () => {
   }, []);
 
   const handleDownload = () => {
-    const resolvedAudioUrl = sessionData?.audioUrl || audioUrl;
+    const resolvedAudioUrl =
+      presignedAudio?.url || sessionData?.audioUrl || audioUrl;
     if (!resolvedAudioUrl) return;
 
     const a = document.createElement("a");

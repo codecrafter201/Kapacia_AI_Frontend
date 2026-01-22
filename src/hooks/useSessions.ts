@@ -3,11 +3,13 @@ import {
   createSession,
   getSessionsByCase,
   getSessionById,
+  getRecentSessions,
   updateSession,
   startRecording,
   stopRecording,
   uploadRecording,
   deleteSession,
+  getSessionAudioUrl,
   // @ts-expect-error - JS module without types
 } from "@/services/sessionService/sessionService.js";
 import { caseKeys } from "./useCases";
@@ -17,6 +19,9 @@ export const sessionKeys = {
   all: ["sessions"] as const,
   byCase: (caseId: string) => [...sessionKeys.all, "case", caseId] as const,
   detail: (id: string) => [...sessionKeys.all, "detail", id] as const,
+  recent: (limit?: string | number) =>
+    [...sessionKeys.all, "recent", limit || "default"] as const,
+  audio: (id: string) => [...sessionKeys.all, "audio", id] as const,
 };
 
 // Get sessions by case ID
@@ -45,6 +50,34 @@ export const useSessionById = (sessionId: string | undefined) => {
       return response.data;
     },
     enabled: !!sessionId,
+  });
+};
+
+// Get fresh presigned audio URL for a session
+export const useSessionAudioUrl = (sessionId: string | undefined) => {
+  return useQuery({
+    queryKey: sessionKeys.audio(sessionId || ""),
+    queryFn: async () => {
+      if (!sessionId) throw new Error("Session ID is required");
+      const response = await getSessionAudioUrl(sessionId);
+      return response.data?.audio || response.data;
+    },
+    enabled: !!sessionId,
+    // these URLs expire; avoid caching too long
+    staleTime: 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+  });
+};
+
+// Recent sessions for dashboard
+export const useRecentSessions = (params?: { limit?: string }) => {
+  const limit = params?.limit || "5";
+  return useQuery({
+    queryKey: sessionKeys.recent(limit),
+    queryFn: async () => {
+      const response = await getRecentSessions({ limit });
+      return response.data;
+    },
   });
 };
 

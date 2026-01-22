@@ -1,4 +1,7 @@
+import axios from "axios";
 import { GetApiData } from "../../utils/http-client";
+import { AuthHeader } from "../../utils/auth.utils";
+import { Config } from "../../../config";
 
 // Create a new case (Admin only)
 export const createCase = function (data) {
@@ -21,6 +24,9 @@ export const getMyCases = function (params = {}) {
   if (params.search) queryParams.append("search", params.search);
   if (params.status) queryParams.append("status", params.status);
   if (params.sortBy) queryParams.append("sortBy", params.sortBy);
+  // Pagination / preview controls
+  if (params.limit) queryParams.append("limit", params.limit);
+  if (params.page) queryParams.append("page", params.page);
 
   const query = queryParams.toString();
   return GetApiData(
@@ -60,4 +66,28 @@ export const getCaseTimeline = function (caseId, params = {}) {
     null,
     true
   );
+};
+
+// Export case data with filters; returns axios response with blob
+export const exportCaseData = async function (caseId, params = {}) {
+  const queryParams = new URLSearchParams();
+  if (params.exportType) queryParams.append("exportType", params.exportType);
+  if (params.exportFormat) queryParams.append("format", params.exportFormat);
+  if (params.startDate) queryParams.append("startDate", params.startDate);
+  if (params.endDate) queryParams.append("endDate", params.endDate);
+  if (params.sessionIds && params.sessionIds.length) {
+    queryParams.append("sessionIds", params.sessionIds.join(","));
+  }
+  if (params.contentToInclude && params.contentToInclude.length) {
+    queryParams.append("contentToInclude", params.contentToInclude.join(","));
+  }
+  if (params.privacyOptions && params.privacyOptions.length) {
+    queryParams.append("privacyOptions", params.privacyOptions.join(","));
+  }
+
+  const query = queryParams.toString();
+  const url = `${Config.API_BASE_URL}/case/${caseId}/export${query ? `?${query}` : ""}`;
+  const headers = AuthHeader();
+
+  return axios.get(url, { headers, responseType: "blob" });
 };

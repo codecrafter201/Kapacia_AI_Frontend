@@ -23,6 +23,7 @@ import {
   File,
   Loader2,
 } from "lucide-react";
+import { TagsList } from "@/components/TagsList";
 
 // interface TimelineEntry {
 //   id: string;
@@ -202,7 +203,7 @@ export const CaseDetailPage = () => {
 
         <Card className="flex flex-row justify-between items-center gap-3 p-4">
           <div className="flex-1 gap-1 grid">
-            <p className="mb-1 text-accent text-sm">Tags</p>
+            {/* <p className="mb-1 text-accent text-sm">Tags</p>
             <div className="flex flex-wrap gap-1">
               {caseInfo.tags && caseInfo.tags.length > 0 ? (
                 caseInfo.tags.map((tag: string, index: number) => (
@@ -216,7 +217,9 @@ export const CaseDetailPage = () => {
               ) : (
                 <span className="text-accent text-xs">No tags</span>
               )}
-            </div>
+            </div> */}
+            <p className="mb-1 text-accent text-sm">Tags</p>
+            <TagsList tags={caseInfo.tags} maxVisible={2} />
           </div>
           <div className="flex justify-center items-center bg-primary/10 rounded-full w-12 h-12">
             <Hash className="w-6 h-6 text-primary" />

@@ -20,9 +20,28 @@ export const getSessionsByCase = function (caseId, params = {}) {
   );
 };
 
+// Get recent sessions for dashboard
+export const getRecentSessions = function (params = {}) {
+  const queryParams = new URLSearchParams();
+  if (params.limit) queryParams.append("limit", params.limit);
+
+  const query = queryParams.toString();
+  return GetApiData(
+    `/session/recent${query ? `?${query}` : ""}`,
+    "GET",
+    null,
+    true,
+  );
+};
+
 // Get session by ID
 export const getSessionById = function (sessionId) {
   return GetApiData(`/session/${sessionId}`, "GET", null, true);
+};
+
+// Get fresh presigned audio URL for a session
+export const getSessionAudioUrl = function (sessionId) {
+  return GetApiData(`/session/${sessionId}/audio-url`, "GET", null, true);
 };
 
 // Update session
