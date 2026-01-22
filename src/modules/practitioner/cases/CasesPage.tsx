@@ -40,7 +40,7 @@ export const CasesPage = () => {
       {/* <Card className="p-4 sm:p-6"> */}
       <div className="gap-3 sm:gap-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12">
         {/* Search Input */}
-        <div className="relative sm:col-span-2 lg:col-span-8">
+        <div className="relative sm:col-span-2 lg:col-span-10">
           <Search className="top-1/2 left-3 absolute w-5 h-5 text-gray-400 -translate-y-1/2" />
           <Input
             type="text"
@@ -68,7 +68,7 @@ export const CasesPage = () => {
         </div>
 
         {/* Sort By */}
-        <div className="relative sm:col-span-1 lg:col-span-2">
+        {/* <div className="relative sm:col-span-1 lg:col-span-2">
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
@@ -80,7 +80,7 @@ export const CasesPage = () => {
             <option value="name">Client Name</option>
           </select>
           <ChevronDown className="top-1/2 right-3 absolute w-4 h-4 text-gray-400 -translate-y-1/2 pointer-events-none" />
-        </div>
+        </div> */}
       </div>
 
       {/* Loading State */}
