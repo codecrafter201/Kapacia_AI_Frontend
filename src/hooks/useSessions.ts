@@ -4,6 +4,7 @@ import {
   getSessionsByCase,
   getSessionById,
   getRecentSessions,
+  getAllSessions,
   updateSession,
   startRecording,
   stopRecording,
@@ -76,6 +77,19 @@ export const useRecentSessions = (params?: { limit?: string }) => {
     queryKey: sessionKeys.recent(limit),
     queryFn: async () => {
       const response = await getRecentSessions({ limit });
+      return response.data;
+    },
+  });
+};
+
+// All sessions for admin dashboard stats
+export const useAllSessions = (params?: { limit?: string | number; page?: string | number }) => {
+  const limit = params?.limit || "100";
+  const page = params?.page || "1";
+  return useQuery({
+    queryKey: [...sessionKeys.all, "allSessions", limit, page],
+    queryFn: async () => {
+      const response = await getAllSessions({ limit: String(limit), page: String(page) });
       return response.data;
     },
   });

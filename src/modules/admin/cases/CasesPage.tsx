@@ -7,18 +7,25 @@ import { Search, ChevronDown, ChevronRight, Plus, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CreateCaseModal } from "./CreateCaseModal";
 import { useAllCases } from "@/hooks/useCases";
+import { useAllUsers } from "@/hooks/useUsers";
 
 export const AdminCasesPage = () => {
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
-  const [sortBy, setSortBy] = useState("");
+  const [assignedToFilter, setAssignedToFilter] = useState("");
+  // const [sortBy, setSortBy] = useState("");
   const [isCreateCaseModalOpen, setIsCreateCaseModalOpen] = useState(false);
+
+  // Fetch all users for filter dropdown
+  const { data: usersData } = useAllUsers({ limit: 100 });
+  const users = usersData?.users || [];
 
   // Fetch all cases using React Query (Admin view)
   const { data, isLoading, isError, error } = useAllCases({
     status: statusFilter,
+    assignedTo: assignedToFilter,
   });
 
   const handleCaseClick = (caseId: string) => {
@@ -65,6 +72,26 @@ export const AdminCasesPage = () => {
           />
         </div>
 
+        {/* User Filter */}
+        <div className="relative sm:col-span-1 lg:col-span-2">
+          <select
+            value={assignedToFilter}
+            onChange={(e) => setAssignedToFilter(e.target.value)}
+            className="px-3 py-2.5 border border-border focus:border-blue-500 rounded-lg outline-none focus:ring-2 focus:ring-blue-200 w-full text-gray-700 text-sm appearance-none"
+          >
+            <option value="">All Practitioners</option>
+            {users
+              .filter((user: any) => user.role === "practitioner")
+              .map((user: any) => (
+                <option key={user._id} value={user._id}>
+                  {user.name}
+                  {/* ({user.role}) */}
+                </option>
+              ))}
+          </select>
+          <ChevronDown className="top-1/2 right-3 absolute w-4 h-4 text-gray-400 -translate-y-1/2 pointer-events-none" />
+        </div>
+
         {/* Status Filter */}
         <div className="relative sm:col-span-1 lg:col-span-2">
           <select
@@ -75,14 +102,14 @@ export const AdminCasesPage = () => {
             <option value="">All Status</option>
             <option value="Active">Active</option>
             <option value="Closed">Closed</option>
-            <option value="OnHold">OnHold</option>
-            <option value="Unapporved">Unapporved</option>
+            <option value="OnHold">On Hold</option>
+            <option value="Unapporved">Un Approved</option>
           </select>
           <ChevronDown className="top-1/2 right-3 absolute w-4 h-4 text-gray-400 -translate-y-1/2 pointer-events-none" />
         </div>
 
         {/* Sort By */}
-        <div className="relative sm:col-span-1 lg:col-span-2">
+        {/* <div className="relative sm:col-span-1 lg:col-span-2">
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
@@ -94,7 +121,7 @@ export const AdminCasesPage = () => {
             <option value="name">Client Name</option>
           </select>
           <ChevronDown className="top-1/2 right-3 absolute w-4 h-4 text-gray-400 -translate-y-1/2 pointer-events-none" />
-        </div>
+        </div> */}
       </div>
 
       {/* Loading State */}

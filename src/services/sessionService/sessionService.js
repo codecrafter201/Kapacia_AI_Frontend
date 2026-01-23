@@ -34,6 +34,21 @@ export const getRecentSessions = function (params = {}) {
   );
 };
 
+// Get all sessions (Admin only)
+export const getAllSessions = function (params = {}) {
+  const queryParams = new URLSearchParams();
+  if (params.limit) queryParams.append("limit", params.limit);
+  if (params.page) queryParams.append("page", params.page);
+
+  const query = queryParams.toString();
+  return GetApiData(
+    `/session/all/list${query ? `?${query}` : ""}`,
+    "GET",
+    null,
+    true,
+  );
+};
+
 // Get session by ID
 export const getSessionById = function (sessionId) {
   return GetApiData(`/session/${sessionId}`, "GET", null, true);
