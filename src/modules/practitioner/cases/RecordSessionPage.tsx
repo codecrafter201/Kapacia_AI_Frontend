@@ -24,7 +24,6 @@ import {
   useStopRecording,
   useUploadRecording,
 } from "@/hooks/useSessions";
-import { useCreateTranscript } from "@/hooks/useTranscript";
 import { useTranscription } from "@/hooks/useTranscription";
 import { useGenerateSoapNote } from "@/hooks/useSoap";
 import {
@@ -34,6 +33,7 @@ import {
 } from "@/utils/audioUtils";
 import { useAuth } from "@/contexts/useAuth";
 import { toast } from "react-toastify";
+import { getTranscriptBySession } from "@/services/transcriptService/transcriptService";
 
 export const RecordSessionPage = () => {
   const { caseId } = useParams();
@@ -77,7 +77,6 @@ export const RecordSessionPage = () => {
   const startRecordingMutation = useStartRecording();
   const stopRecordingMutation = useStopRecording();
   const uploadRecordingMutation = useUploadRecording();
-  const createTranscriptMutation = useCreateTranscript();
   const generateSoapNoteMutation = useGenerateSoapNote();
 
   // Transcription hook
@@ -560,45 +559,56 @@ export const RecordSessionPage = () => {
             },
           });
 
-          // Save transcript with all collected transcript entries
+          // Fetch the live-saved transcript (streamed from backend) for SOAP generation
           let transcriptTextForSoap = "";
-          if (transcriptEntries.length > 0) {
-            console.log(
-              "[Stop Recording] Saving transcript with entries:",
-              transcriptEntries.length,
+          try {
+            const transcriptResponse = await getTranscriptBySession(
+              currentSessionId,
             );
 
-            // Format transcript text from entries
-            const transcriptText = transcriptEntries
-              .map(
-                (entry) =>
-                  `[${entry.timestamp}] ${entry.speaker}: ${entry.text}`,
-              )
-              .join("\n");
+            const transcriptData =
+              transcriptResponse?.transcript ||
+              transcriptResponse?.data?.transcript ||
+              transcriptResponse?.data;
 
-            const wordCount = transcriptText.split(/\s+/).length;
-            transcriptTextForSoap = transcriptText;
+            if (transcriptData?.rawText) {
+              transcriptTextForSoap = transcriptData.rawText;
+            } else if (
+              transcriptData?.segments &&
+              Array.isArray(transcriptData.segments) &&
+              transcriptData.segments.length > 0
+            ) {
+              transcriptTextForSoap = transcriptData.segments
+                .map((segment) => {
+                  const ts = segment.timestamp || new Date().toISOString();
+                  const speaker = segment.speaker || "Speaker";
+                  const text = segment.text || "";
+                  return `[${ts}] ${speaker}: ${text}`;
+                })
+                .join("\n");
+            }
 
-            try {
-              const transcriptResult =
-                await createTranscriptMutation.mutateAsync({
-                  sessionId: currentSessionId,
-                  rawText: transcriptText,
-                  wordCount,
-                  languageDetected: sessionLanguage,
-                  segments: transcriptEntries,
-                  status: "Draft",
-                });
-              console.log(
-                "[Stop Recording] Transcript saved successfully",
-                transcriptResult,
-              );
-            } catch (transcriptError) {
-              console.error(
-                "[Stop Recording] Failed to save transcript:",
-                transcriptError,
-              );
-              // Continue anyway - transcript error shouldn't block the session save
+            console.log(
+              "[Stop Recording] Retrieved live transcript for SOAP",
+              {
+                hasTranscript: !!transcriptTextForSoap,
+                segments: transcriptData?.segments?.length || 0,
+              },
+            );
+          } catch (transcriptError) {
+            console.error(
+              "[Stop Recording] Failed to fetch live transcript:",
+              transcriptError,
+            );
+
+            // Fallback to local transcript entries if available
+            if (transcriptEntries.length > 0) {
+              transcriptTextForSoap = transcriptEntries
+                .map(
+                  (entry) =>
+                    `[${entry.timestamp}] ${entry.speaker}: ${entry.text}`,
+                )
+                .join("\n");
             }
           }
 
