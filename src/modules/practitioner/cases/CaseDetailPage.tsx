@@ -474,28 +474,27 @@ export const CaseDetailPage = () => {
                         )}
 
                         {/* File Upload Details */}
-                        {entry.eventType === "file_upload" &&
-                          entry.file && (
-                            <div className="flex items-center gap-3 bg-primary/5 p-3 rounded">
-                              <File className="w-8 h-8 text-accent-foreground" />
-                              <div className="flex-1">
-                                <p className="font-medium text-secondary text-sm">
-                                  {entry.file.fileName || "File"}
-                                </p>
-                                <p className="text-accent text-xs">
-                                  {entry.file.fileSizeBytes
-                                    ? `${(
-                                        entry.file.fileSizeBytes /
-                                        1024 /
-                                        1024
-                                      ).toFixed(2)} MB`
-                                    : ""}{" "}
-                                  • Uploaded by:{" "}
-                                  {entry.performedBy?.name || "N/A"}
-                                </p>
-                              </div>
+                        {entry.eventType === "file_upload" && entry.file && (
+                          <div className="flex items-center gap-3 bg-primary/5 p-3 rounded">
+                            <File className="w-8 h-8 text-accent-foreground" />
+                            <div className="flex-1">
+                              <p className="font-medium text-secondary text-sm">
+                                {entry.file.fileName || "File"}
+                              </p>
+                              <p className="text-accent text-xs">
+                                {entry.file.fileSizeBytes
+                                  ? `${(
+                                      entry.file.fileSizeBytes /
+                                      1024 /
+                                      1024
+                                    ).toFixed(2)} MB`
+                                  : ""}{" "}
+                                • Uploaded by:{" "}
+                                {entry.performedBy?.name || "N/A"}
+                              </p>
                             </div>
-                          )}
+                          </div>
+                        )}
 
                         {/* Summary Details */}
                         {entry.eventType === "summary" && entry.summary && (
