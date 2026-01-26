@@ -4,6 +4,7 @@ import {
   getMyCases,
   getCaseById,
   createCase,
+  createSelfCase,
   updateCase,
   deleteCase,
   getCaseTimeline,
@@ -74,6 +75,7 @@ export const useCaseTimeline = (
   caseId: string | undefined,
   params?: {
     eventType?: string;
+    sessionStatus?: string;
     startDate?: string;
     endDate?: string;
     allEntries?: boolean;
@@ -102,6 +104,21 @@ export const useCreateCase = () => {
     onSuccess: () => {
       // Invalidate and refetch
       queryClient.invalidateQueries({ queryKey: caseKeys.allCases() });
+      queryClient.invalidateQueries({ queryKey: caseKeys.myCases() });
+    },
+  });
+};
+
+// Practitioners create their own case (self-assigned, always Active)
+export const useCreateSelfCase = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: any) => {
+      const response = await createSelfCase(data);
+      return response.data;
+    },
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: caseKeys.myCases() });
     },
   });

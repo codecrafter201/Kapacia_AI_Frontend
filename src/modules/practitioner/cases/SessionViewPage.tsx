@@ -90,14 +90,6 @@ export const SessionViewPage = () => {
 
   // Get the latest SOAP note (first one since they're sorted by version desc)
   const latestSoapNote = soapResponse?.soapNotes?.[0] || null;
-  console.log("latestSoapNote", latestSoapNote);
-
-  // Debug logs
-  console.log("[SessionViewPage] sessionId:", sessionId);
-  console.log("[SessionViewPage] transcriptResponse:", transcriptResponse);
-  console.log("[SessionViewPage] transcriptData:", transcriptData);
-  console.log("[SessionViewPage] loadingTranscript:", loadingTranscript);
-  console.log("[SessionViewPage] transcriptError:", transcriptError);
 
   // Refetch transcript when sessionId changes
   useEffect(() => {
@@ -255,7 +247,7 @@ export const SessionViewPage = () => {
     };
 
     const resolvedAudioUrl =
-      (presignedAudio as any)?.url || sessionData?.audioUrl || audioUrl;
+      (presignedAudio as any)?.audio?.url || (presignedAudio as any)?.url || sessionData?.audioUrl || audioUrl;
 
     // Prefer blob (from navigation state), then backend audioUrl, else fallback
     if (audioBlob) {
@@ -291,7 +283,7 @@ export const SessionViewPage = () => {
       // On auth/expired URL errors, refetch a new presigned URL and retry once
       refetchAudioUrl()
         .then((r) => {
-          const freshUrl = (r.data as any)?.url;
+          const freshUrl = (r.data as any)?.audio?.url || (r.data as any)?.url;
           if (freshUrl) {
             try {
               ws.load(freshUrl);
@@ -324,6 +316,7 @@ export const SessionViewPage = () => {
     audioBlob,
     audioUrl,
     sessionData?.audioUrl,
+    (presignedAudio as any)?.audio?.url,
     (presignedAudio as any)?.url,
   ]);
 
@@ -399,18 +392,41 @@ export const SessionViewPage = () => {
   );
 
   const handleDeleteSession = async () => {
-    if (
-      !sessionId ||
-      !window.confirm("Are you sure you want to delete this session?")
-    )
-      return;
+    if (!sessionId) return;
+
+    const result = await Swal.fire({
+      title: "Delete Session?",
+      text: "Are you sure you want to delete this session? This action cannot be undone.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#dc2626",
+      cancelButtonColor: "#6b7280",
+      confirmButtonText: "Delete",
+      cancelButtonText: "Cancel",
+    });
+
+    if (!result.isConfirmed) return;
 
     try {
       await deleteSessionMutation.mutateAsync(sessionId);
+      Swal.fire({
+        title: "Deleted!",
+        text: "Session has been deleted successfully.",
+        icon: "success",
+        confirmButtonColor: "#188aec",
+      });
       navigate(`/practitioner/my-cases/${caseId}`);
     } catch (error) {
       console.error("Failed to delete session:", error);
-      alert("Failed to delete session. Please try again.");
+      Swal.fire({
+        title: "Error",
+        text:
+          error instanceof Error
+            ? error.message
+            : "Failed to delete session. Please try again.",
+        icon: "error",
+        confirmButtonColor: "#188aec",
+      });
     }
   };
 
@@ -571,7 +587,11 @@ export const SessionViewPage = () => {
               }`}
             >
               {statusInfo?.color === "green" && (
-                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                <svg
+                  className="w-3 h-3"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                >
                   <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
                 </svg>
               )}

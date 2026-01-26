@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/useAuth";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import {
   updatePassword,
 } from "@/services/userService/userService";
 import Swal from "sweetalert2";
+import { toast } from "react-toastify";
 
 export const SettingPage = () => {
   const { user, setUser } = useAuth();
@@ -21,8 +22,25 @@ export const SettingPage = () => {
     newPassword: "",
     confirmPassword: "",
   });
-  const [sessionLanguage, setSessionLanguage] = useState("english");
-  const [piiMasking, setPiiMasking] = useState("on");
+  const [sessionLanguage, setSessionLanguage] = useState(
+    user?.language || "english",
+  );
+  const [piiMasking, setPiiMasking] = useState(user?.piiMasking !== false);
+
+  // Update local state when user data changes
+  useEffect(() => {
+    if (user) {
+      setSessionLanguage(user.language || "english");
+      setPiiMasking(user.piiMasking !== false);
+      setFormData({
+        name: user.name || "",
+        email: user.email || "",
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
+    }
+  }, [user]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -34,16 +52,45 @@ export const SettingPage = () => {
       let profileUpdated = false;
       let passwordUpdated = false;
 
-      // Update profile if name changed
+      // Prepare profile update data
+      const profileData: any = {};
+      let hasProfileChanges = false;
+
       if (formData.name.trim() !== "" && formData.name !== user?.name) {
-        const profileResponse = await updateProfile({ name: formData.name });
-        if (
-          profileResponse &&
-          (profileResponse.success || profileResponse.user)
-        ) {
+        profileData.name = formData.name;
+        hasProfileChanges = true;
+      }
+
+      if (sessionLanguage !== user?.language) {
+        profileData.language = sessionLanguage;
+        hasProfileChanges = true;
+      }
+
+      if (piiMasking !== (user?.piiMasking !== false)) {
+        profileData.piiMasking = piiMasking;
+        hasProfileChanges = true;
+      }
+
+      // Validate: PII Masking can only be enabled with English
+      if (
+        profileData.piiMasking === true &&
+        (profileData.language || sessionLanguage) !== "english"
+      ) {
+        toast.error("PII Masking can only be enabled with English language");
+        setIsLoading(false);
+        return;
+      }
+
+      // Update profile if there are changes
+      if (hasProfileChanges) {
+        const profileResponse = await updateProfile(profileData);
+        if (profileResponse && profileResponse.data) {
           profileUpdated = true;
-          // Update user context
-          setUser({ ...user, name: formData.name });
+          // Update user context with the complete updated user from backend
+          const updatedUserData = profileResponse.data.user || profileResponse.data.userData;
+          if (updatedUserData) {
+            setUser(updatedUserData);
+          }
         }
       }
 
@@ -109,13 +156,22 @@ export const SettingPage = () => {
         });
 
         setIsEditing(false);
-      } else {
+      } else if (
+        !profileUpdated &&
+        !passwordUpdated &&
+        (formData.currentPassword || formData.newPassword)
+      ) {
+        // Only show error if password fields were filled but update failed
         await Swal.fire({
-          title: "Success!",
-          text: "Profile updated successfully.",
-          icon: "success",
+          title: "Error",
+          text: "Failed to update. Please try again.",
+          icon: "error",
           confirmButtonColor: "#188aec",
         });
+      } else {
+        // No changes were made
+        toast.success("Profile updated successfully");
+        setIsEditing(false);
       }
     } catch (error: any) {
       console.error("Failed to update:", error);
@@ -325,30 +381,43 @@ export const SettingPage = () => {
 
       {/* Default Session Language */}
       <Card className="p-6">
-        <h2 className="font-medium text-secondary text-sm">
+        <h2 className="mb-3 font-medium text-secondary text-sm">
           Default Session Language
         </h2>
         <div className="flex flex-wrap gap-2">
-          <label className="flex items-center gap-2 opacity-50 cursor-not-allowed">
+          <label
+            className={`flex items-center gap-2 ${!isEditing ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+          >
             <input
               type="radio"
               name="sessionLanguage"
               value="english"
               checked={sessionLanguage === "english"}
-              onChange={(e) => setSessionLanguage(e.target.value)}
-              disabled={true}
+              onChange={(e) => {
+                setSessionLanguage(e.target.value);
+              }}
+              disabled={!isEditing}
               className="focus:ring-2 focus:ring-blue-500 w-4 h-4 text-blue-600"
             />
             <span className="text-secondary text-sm">English</span>
           </label>
-          <label className="flex items-center gap-2 opacity-50 cursor-not-allowed">
+          <label
+            className={`flex items-center gap-2 ${!isEditing ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+          >
             <input
               type="radio"
               name="sessionLanguage"
               value="mandarin"
               checked={sessionLanguage === "mandarin"}
-              onChange={(e) => setSessionLanguage(e.target.value)}
-              disabled={true}
+              onChange={(e) => {
+                setSessionLanguage(e.target.value);
+                // Auto-disable PII masking when Mandarin is selected
+                if (e.target.value === "mandarin") {
+                  setPiiMasking(false);
+                  toast.info("PII Masking automatically disabled for Mandarin");
+                }
+              }}
+              disabled={!isEditing}
               className="focus:ring-2 focus:ring-blue-500 w-4 h-4 text-blue-600"
             />
             <span className="text-secondary text-sm">Mandarin</span>
@@ -358,30 +427,46 @@ export const SettingPage = () => {
 
       {/* PII Masking Default */}
       <Card className="p-6">
-        <h2 className="font-medium text-secondary text-sm">
+        <h2 className="mb-3 font-medium text-secondary text-sm">
           PII Masking Default
         </h2>
+        <p className="mb-3 text-accent text-xs">
+          {sessionLanguage !== "english" &&
+            "PII Masking is only available with English language"}
+        </p>
         <div className="flex flex-wrap gap-2">
-          <label className="flex items-center gap-2 opacity-50 cursor-not-allowed">
+          <label
+            className={`flex items-center gap-2 ${!isEditing || sessionLanguage !== "english" ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+          >
             <input
               type="radio"
               name="piiMasking"
               value="on"
-              checked={piiMasking === "on"}
-              onChange={(e) => setPiiMasking(e.target.value)}
-              disabled={true}
+              checked={piiMasking === true}
+              onChange={(e) => {
+                if (sessionLanguage !== "english") {
+                  toast.error(
+                    "PII Masking can only be enabled with English language",
+                  );
+                  return;
+                }
+                setPiiMasking(true);
+              }}
+              disabled={!isEditing || sessionLanguage !== "english"}
               className="focus:ring-2 focus:ring-blue-500 w-4 h-4 text-blue-600"
             />
             <span className="text-secondary text-sm">On</span>
           </label>
-          <label className="flex items-center gap-2 opacity-50 cursor-not-allowed">
+          <label
+            className={`flex items-center gap-2 ${!isEditing ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+          >
             <input
               type="radio"
               name="piiMasking"
               value="off"
-              checked={piiMasking === "off"}
-              onChange={(e) => setPiiMasking(e.target.value)}
-              disabled={true}
+              checked={piiMasking === false}
+              onChange={(e) => setPiiMasking(false)}
+              disabled={!isEditing}
               className="focus:ring-2 focus:ring-blue-500 w-4 h-4 text-blue-600"
             />
             <span className="text-secondary text-sm">Off</span>

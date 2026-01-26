@@ -60,13 +60,22 @@ export const useSessionAudioUrl = (sessionId: string | undefined) => {
     queryKey: sessionKeys.audio(sessionId || ""),
     queryFn: async () => {
       if (!sessionId) throw new Error("Session ID is required");
-      const response = await getSessionAudioUrl(sessionId);
-      return response.data?.audio || response.data;
+      try {
+        console.log(`[useSessions] Fetching presigned audio URL for session: ${sessionId}`);
+        const response = await getSessionAudioUrl(sessionId);
+        console.log(`[useSessions] Audio URL fetched successfully`, response.data);
+        return response.data?.data || response.data;
+      } catch (error) {
+        console.error(`[useSessions] Failed to fetch audio URL:`, error);
+        throw error;
+      }
     },
     enabled: !!sessionId,
-    // these URLs expire; avoid caching too long
-    staleTime: 60 * 1000,
-    gcTime: 5 * 60 * 1000,
+    // Presigned URLs expire; cache for shorter duration
+    staleTime: 60 * 1000, // 1 minute
+    gcTime: 5 * 60 * 1000, // 5 minutes
+    retry: 2, // Retry failed requests up to 2 times
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
   });
 };
 

@@ -32,10 +32,13 @@ import {
   validatePCMBuffer,
   logAudioStats,
 } from "@/utils/audioUtils";
+import { useAuth } from "@/contexts/useAuth";
+import { toast } from "react-toastify";
 
 export const RecordSessionPage = () => {
   const { caseId } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   // 2-hour recording limit in seconds (120 minutes * 60)
   const RECORDING_TIME_LIMIT = 2 * 60 * 60;
@@ -50,7 +53,7 @@ export const RecordSessionPage = () => {
   };
 
   const [sessionDate, setSessionDate] = useState(getCurrentDate());
-  const [sessionLanguage, setSessionLanguage] = useState("english");
+  const [sessionLanguage, setSessionLanguage] = useState(user?.language || "english");
   const [patientSignature, setPatientSignature] = useState("");
   const [consentDate, setConsentDate] = useState(getCurrentDate());
   const [consent, setConsent] = useState(false);
@@ -58,7 +61,7 @@ export const RecordSessionPage = () => {
   const [isStarting, setIsStarting] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [recordingTime, setRecordingTime] = useState("00:00:00");
-  const [piiMasking, setPiiMasking] = useState("on");
+  const [piiMasking, setPiiMasking] = useState(user?.piiMasking !== false);
   // const [advancedLanguage, setAdvancedLanguage] = useState("english");
   const [allowTranscript, setAllowTranscript] = useState(true);
   const [sessionStartTime, setSessionStartTime] = useState<string | null>(null);
@@ -237,7 +240,7 @@ export const RecordSessionPage = () => {
         caseId,
         sessionDate: new Date(sessionDate).toISOString(),
         language: sessionLanguage,
-        piiMaskingEnabled: piiMasking === "on",
+        piiMaskingEnabled: piiMasking,
         consentGiven: consent,
         consentTimestamp: new Date(consentDate).toISOString(),
       });
@@ -951,7 +954,14 @@ export const RecordSessionPage = () => {
             <div className="relative">
               <select
                 value={sessionLanguage}
-                onChange={(e) => setSessionLanguage(e.target.value)}
+                onChange={(e) => {
+                  setSessionLanguage(e.target.value);
+                  // Auto-disable PII masking when Mandarin is selected
+                  if (e.target.value === "mandarin") {
+                    setPiiMasking(false);
+                    toast.info("PII Masking automatically disabled for Mandarin");
+                  }
+                }}
                 className="bg-primary/5 px-3 py-2 focus:border-primary/40 rounded-lg outline-none focus:ring-2 focus:ring-primary w-full text-accent text-sm appearance-none"
               >
                 <option value="english">English</option>
@@ -1030,13 +1040,23 @@ export const RecordSessionPage = () => {
               </h3>
               <p className="text-accent text-xs">
                 Mask identifiers (NRIC, phone, address)
+                {sessionLanguage !== "english" && " - Only available with English"}
               </p>
             </div>
             <div className="relative">
               <select
-                value={piiMasking}
-                onChange={(e) => setPiiMasking(e.target.value)}
-                className="bg-primary/10 px-3 py-2 pr-10 focus:border-primary/40 rounded-lg outline-none focus:ring-2 focus:ring-primary/20 text-primary text-sm appearance-none"
+                value={piiMasking ? "on" : "off"}
+                onChange={(e) => {
+                  if (e.target.value === "on" && sessionLanguage !== "english") {
+                    toast.error("PII Masking can only be enabled with English language");
+                    return;
+                  }
+                  setPiiMasking(e.target.value === "on");
+                }}
+                disabled={sessionLanguage !== "english"}
+                className={`bg-primary/10 px-3 py-2 pr-10 focus:border-primary/40 rounded-lg outline-none focus:ring-2 focus:ring-primary/20 text-primary text-sm appearance-none ${
+                  sessionLanguage !== "english" ? "opacity-50 cursor-not-allowed" : ""
+                }`}
               >
                 <option value="off">OFF</option>
                 <option value="on">ON</option>

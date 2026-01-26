@@ -8,3 +8,6 @@ export const getFilesByCase = (caseId: string) =>
 
 export const deleteFile = (fileId: string) =>
   GetApiData(`/file/${fileId}`, "DELETE", null, true);
+
+export const getFilePresignedUrl = (fileId: string) =>
+  GetApiData(`/file/${fileId}/presign`, "GET", null, true);

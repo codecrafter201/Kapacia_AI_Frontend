@@ -20,6 +20,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   const [user, setUser] = useState<UserData | null>(() => getStoredUser());
   const [isLoading, setIsLoading] = useState(true);
 
+  // Update user and sync to localStorage
+  const updateUser = (userData: UserData | null) => {
+    setUser(userData);
+    if (userData) {
+      setStoredUser(userData);
+    } else {
+      removeStoredUser();
+    }
+  };
+
   // Get token from localStorage
   const getToken = (): string | null => {
     return localStorage.getItem(TOKEN_KEY);
@@ -56,13 +66,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     try {
       setIsLoading(true);
       const userData = await fetchCurrentUser(token);
-      setUser(userData);
-      setStoredUser(userData);
+      updateUser(userData);
     } catch (error) {
       console.error("Failed to fetch user:", error);
       removeToken();
       removeStoredUser();
-      setUser(null);
+      updateUser(null);
     } finally {
       setIsLoading(false);
     }
@@ -79,8 +88,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
       // userData now contains the user object with token directly
       setToken(userData.token);
-      setUser(userData);
-      setStoredUser(userData);
+      updateUser(userData);
       // toast.success("Login successful!");
       return userData;
     } catch (error) {
@@ -100,7 +108,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   const logout = () => {
     removeToken();
     removeStoredUser(); // ✅ FIX: Also remove user from localStorage
-    setUser(null);
+    updateUser(null);
     // toast.info("Logged out successfully");
   };
 
@@ -116,13 +124,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       try {
         setIsLoading(true);
         const userData = await fetchCurrentUser(token);
-        setUser(userData);
-        setStoredUser(userData);
+        updateUser(userData);
       } catch (error) {
         console.error("Failed to fetch user:", error);
         removeToken();
         removeStoredUser();
-        setUser(null);
+        updateUser(null);
       } finally {
         setIsLoading(false);
       }
@@ -133,6 +140,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
   const value: AuthContextType = {
     user,
+    setUser: updateUser,
     isLoading,
     isAuthenticated: !!user,
     login,

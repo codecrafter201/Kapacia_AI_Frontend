@@ -8,6 +8,11 @@ export const createCase = function (data) {
   return GetApiData(`/case`, "POST", data, true);
 };
 
+// Practitioner creates own case (self-assigned, always Active)
+export const createSelfCase = function (data) {
+  return GetApiData(`/case/self`, "POST", data, true);
+};
+
 // Get all cases (Admin only)
 export const getAllCases = function (params = {}) {
   const queryParams = new URLSearchParams();
@@ -56,6 +61,8 @@ export const deleteCase = function (caseId) {
 export const getCaseTimeline = function (caseId, params = {}) {
   const queryParams = new URLSearchParams();
   if (params.eventType) queryParams.append("eventType", params.eventType);
+  if (params.sessionStatus)
+    queryParams.append("sessionStatus", params.sessionStatus);
   if (params.startDate) queryParams.append("startDate", params.startDate);
   if (params.endDate) queryParams.append("endDate", params.endDate);
   if (params.allEntries) queryParams.append("allEntries", "true");

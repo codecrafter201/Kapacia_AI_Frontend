@@ -3,8 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Pagination } from "@/components/ui/Pagination";
-import { Search, ChevronDown, ChevronRight, Loader2 } from "lucide-react";
+import { Search, ChevronDown, ChevronRight, Loader2, Plus } from "lucide-react";
 import { useMyCases } from "@/hooks/useCases";
+import { Button } from "@/components/ui/button";
+import { SelfCreateCaseModal } from "./SelfCreateCaseModal";
 
 export const CasesPage = () => {
   const navigate = useNavigate();
@@ -12,6 +14,7 @@ export const CasesPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [sortBy, setSortBy] = useState("");
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   // Fetch cases using React Query
   const { data, isLoading, isError, error } = useMyCases({
@@ -36,6 +39,19 @@ export const CasesPage = () => {
 
   return (
     <div className="space-y-4 sm:space-y-6 w-full">
+      <div className="flex sm:flex-row flex-col sm:justify-between items-center gap-4">
+        <div>
+          <h1 className="font-medium text-secondary text-lg sm:text-xl">
+            All Assigned Cases
+          </h1>
+        </div>
+        <Button
+          onClick={() => setIsCreateModalOpen(true)}
+          className="bg-primary hover:bg-primary/80 rounded-lg w-full sm:w-auto text-white"
+        >
+          <Plus className="w-4 h-4" /> New Case
+        </Button>
+      </div>
       {/* Search and Filters */}
       {/* <Card className="p-4 sm:p-6"> */}
       <div className="gap-3 sm:gap-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12">
@@ -214,6 +230,11 @@ export const CasesPage = () => {
           )}
         </div>
       )}
+
+      <SelfCreateCaseModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+      />
     </div>
   );
 };

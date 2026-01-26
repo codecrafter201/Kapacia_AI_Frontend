@@ -6,6 +6,7 @@ import { UploadFileModal } from "./UploadFileModal";
 import { ExportCaseModal } from "./ExportCaseModal";
 import { GenerateTimelineSummaryModal } from "./GenerateTimelineSummaryModal";
 import { useCaseById, useCaseTimeline } from "@/hooks/useCases";
+import { getFilePresignedUrl } from "@/services/fileService/fileService";
 import {
   ChevronLeft,
   Mic,
@@ -106,6 +107,38 @@ export const CaseDetailPage = () => {
       </Card>
     );
   }
+
+  const handleViewFile = async (fileId?: string) => {
+    if (!fileId) return;
+    try {
+      const response = await getFilePresignedUrl(fileId);
+      const url = response.data?.file?.url || response.data?.url;
+      if (url) {
+        window.open(url, "_blank", "noopener,noreferrer");
+      }
+    } catch (error) {
+      console.error("Failed to open file:", error);
+    }
+  };
+
+  const handleDownloadFile = async (fileId?: string, fileName?: string) => {
+    if (!fileId) return;
+    try {
+      const response = await getFilePresignedUrl(fileId);
+      const url = response.data?.file?.url || response.data?.url;
+      if (!url) return;
+
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = fileName || "file";
+      link.target = "_blank";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error("Failed to download file:", error);
+    }
+  };
 
   return (
     <div className="space-y-6 w-full">
@@ -315,18 +348,24 @@ export const CaseDetailPage = () => {
               </select>
               <ChevronDown className="top-1/2 right-2 absolute w-4 h-4 text-accent -translate-y-1/2 pointer-events-none" />
             </div>
-            {/* <div className="relative">
+            <div className="relative">
               <select
                 value={sessionFilter}
                 onChange={(e) => setSessionFilter(e.target.value)}
                 className="px-3 py-2 pr-8 border border-border focus:border-blue-500 rounded-lg outline-none focus:ring-2 focus:ring-blue-200 text-accent text-sm appearance-none"
               >
                 <option value="">All Sessions</option>
+                <option value="Created">Created</option>
+                <option value="Recording">Recording</option>
                 <option value="Processing">Processing</option>
+                {/* <option value="TranscriptionComplete">Transcription Complete</option> */}
+                {/* <option value="Ready">Ready</option> */}
                 <option value="Approved">Approved</option>
+                <option value="Rejected">Rejected</option>
+                {/* <option value="Error">Error</option> */}
               </select>
               <ChevronDown className="top-1/2 right-2 absolute w-4 h-4 text-accent -translate-y-1/2 pointer-events-none" />
-            </div> */}
+            </div>
           </div>
         </div>
 
@@ -435,18 +474,18 @@ export const CaseDetailPage = () => {
                         )}
 
                         {/* File Upload Details */}
-                        {entry.eventType === "fileUpload" &&
-                          entry.fileUpload && (
+                        {entry.eventType === "file_upload" &&
+                          entry.file && (
                             <div className="flex items-center gap-3 bg-primary/5 p-3 rounded">
                               <File className="w-8 h-8 text-accent-foreground" />
                               <div className="flex-1">
                                 <p className="font-medium text-secondary text-sm">
-                                  {entry.fileUpload.fileName || "File"}
+                                  {entry.file.fileName || "File"}
                                 </p>
                                 <p className="text-accent text-xs">
-                                  {entry.fileUpload.fileSize
+                                  {entry.file.fileSizeBytes
                                     ? `${(
-                                        entry.fileUpload.fileSize /
+                                        entry.file.fileSizeBytes /
                                         1024 /
                                         1024
                                       ).toFixed(2)} MB`
@@ -499,12 +538,13 @@ export const CaseDetailPage = () => {
                           <ChevronRight className="w-4 h-4" />
                         </Button>
                       )}
-                      {entry.eventType === "fileUpload" && (
+                      {entry.eventType === "file_upload" && entry.file && (
                         <div className="flex gap-2">
                           <Button
                             variant="outline"
                             size="sm"
                             className="flex items-center gap-1 bg-primary/10 border-primary text-primary"
+                            onClick={() => handleViewFile(entry.file._id)}
                           >
                             View File
                             <ChevronRight className="w-4 h-4" />
@@ -513,6 +553,12 @@ export const CaseDetailPage = () => {
                             variant="outline"
                             size="sm"
                             className="bg-primary/10 border-primary text-primary"
+                            onClick={() =>
+                              handleDownloadFile(
+                                entry.file._id,
+                                entry.file.fileName,
+                              )
+                            }
                           >
                             Download
                           </Button>
