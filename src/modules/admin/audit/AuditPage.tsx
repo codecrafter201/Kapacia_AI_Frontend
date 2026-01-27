@@ -4,14 +4,30 @@ import { Button } from "@/components/ui/button";
 import { Pagination } from "@/components/ui/Pagination";
 import { RotateCcw, Download, ChevronDown, Loader2, X } from "lucide-react";
 import { useAuditLogs } from "@/hooks/useAuditLogs";
-import { AuditLog, exportAuditLogs } from "@/services/auditService/auditService";
+import {
+  AuditLog,
+  exportAuditLogs,
+} from "@/services/auditService/auditService";
 import Swal from "sweetalert2";
 
-// Action category mapping outside component
-const ACTION_CATEGORY_MAP: Record<string, string> = {
-  approved: "SOAP",
-  added: "TIMELINE_SUMMARY",
-  accessed: "CASE",
+// Action filter mapping (UI option -> API params)
+// Keep values aligned with stored audit log action/actionCategory strings.
+const ACTION_FILTERS: Record<
+  string,
+  { action?: string; actionCategory?: string }
+> = {
+  // Backups / exports
+  backupExport: { action: "EXPORT", actionCategory: "ADMIN" },
+  // Auth logins
+  login: { action: "LOGIN", actionCategory: "AUTH" },
+  // Session lifecycle (create/upload/start/stop/update)
+  sessionActivity: { actionCategory: "SESSION" },
+  // SOAP generate/approve
+  soap: { actionCategory: "SOAP" },
+  // Timeline summaries created
+  timelineCreated: { action: "CREATE", actionCategory: "TIMELINE_SUMMARY" },
+  // Data retention (schedule/delete)
+  dataRetention: { actionCategory: "DATA_RETENTION" },
 };
 
 // Status info mapping outside component
@@ -54,39 +70,60 @@ export const AuditPage = () => {
 
   // Calculate date filters
   const getDateFilters = useCallback(() => {
+    // Always return start/end as full ISO strings; endDate is exclusive (next day)
     const today = new Date();
-    let startDate = "";
-    let endDate = today.toISOString().split("T")[0];
+
+    // Helper: strip time and add days
+    const stripTime = (d: Date) => {
+      const copy = new Date(d);
+      copy.setHours(0, 0, 0, 0);
+      return copy;
+    };
+    const addDays = (d: Date, days: number) => {
+      const copy = new Date(d);
+      copy.setDate(copy.getDate() + days);
+      return copy;
+    };
+
+    let start: Date | null = null;
+    let endExclusive: Date | null = null;
 
     switch (dateRange) {
-      case "today":
-        startDate = today.toISOString().split("T")[0];
+      case "today": {
+        start = stripTime(today);
+        endExclusive = addDays(start, 1);
         break;
-      case "week":
-        const weekAgo = new Date(today);
-        weekAgo.setDate(weekAgo.getDate() - 7);
-        startDate = weekAgo.toISOString().split("T")[0];
+      }
+      case "week": {
+        endExclusive = addDays(stripTime(today), 1);
+        start = addDays(endExclusive, -7);
         break;
-      case "month":
-        const monthAgo = new Date(today);
-        monthAgo.setMonth(monthAgo.getMonth() - 1);
-        startDate = monthAgo.toISOString().split("T")[0];
+      }
+      case "month": {
+        endExclusive = addDays(stripTime(today), 1);
+        start = addDays(endExclusive, -30);
         break;
+      }
       default:
         return {};
     }
 
-    return { startDate, endDate };
+    return {
+      startDate: start?.toISOString(),
+      endDate: endExclusive?.toISOString(),
+    };
   }, [dateRange]);
 
   const dateFilters = getDateFilters();
 
   // Fetch audit logs
+  const selectedActionFilter = ACTION_FILTERS[actionType] || {};
+
   const { data, isLoading, error } = useAuditLogs({
     page: currentPage,
     limit: 10,
-    action: actionType || undefined,
-    actionCategory: ACTION_CATEGORY_MAP[actionType] || undefined,
+    action: selectedActionFilter.action,
+    actionCategory: selectedActionFilter.actionCategory,
     startDate: dateFilters.startDate,
     endDate: dateFilters.endDate,
   });
@@ -143,9 +180,13 @@ export const AuditPage = () => {
       if (dateFilters.startDate) filters.startDate = dateFilters.startDate;
       if (dateFilters.endDate) filters.endDate = dateFilters.endDate;
       if (actionType) {
-        filters.action = actionType;
-        const category = ACTION_CATEGORY_MAP[actionType];
-        if (category) filters.actionCategory = category;
+        if (ACTION_FILTERS[actionType]?.action) {
+          filters.action = ACTION_FILTERS[actionType].action as string;
+        }
+        if (ACTION_FILTERS[actionType]?.actionCategory) {
+          filters.actionCategory = ACTION_FILTERS[actionType]
+            .actionCategory as string;
+        }
       }
 
       // Call API to export (exports all matching logs, not just current page)
@@ -232,9 +273,14 @@ export const AuditPage = () => {
               className="bg-white px-3 py-2 border border-border/60 focus:border-blue-500 rounded-lg outline-none focus:ring-2 focus:ring-blue-200 w-full text-gray-700 text-sm appearance-none"
             >
               <option value="">Action Type</option>
-              <option value="approved">Approved</option>
-              <option value="added">Created/Added</option>
-              <option value="accessed">Accessed</option>
+              <option value="backupExport">Backups / Exports</option>
+              <option value="login">Logins</option>
+              <option value="sessionActivity">Session Activity</option>
+              <option value="soap">SOAP (Generate/Approve)</option>
+              <option value="timelineCreated">
+                Timeline Summaries Created
+              </option>
+              <option value="dataRetention">Data Retention</option>
             </select>
             <ChevronDown className="top-1/2 right-3 absolute w-4 h-4 text-gray-400 -translate-y-1/2 pointer-events-none" />
           </div>
