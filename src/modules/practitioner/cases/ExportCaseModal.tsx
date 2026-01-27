@@ -296,29 +296,11 @@ export const ExportCaseModal = ({
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="radio"
-                  checked={exportFormat === "word"}
-                  onChange={() => setExportFormat("word")}
-                  className="w-4 h-4 text-primary"
-                />
-                <span className="text-secondary text-sm">Word Document</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
                   checked={exportFormat === "json"}
                   onChange={() => setExportFormat("json")}
                   className="w-4 h-4 text-blue-600"
                 />
                 <span className="text-gray-700 text-sm">JSON</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  checked={exportFormat === "zip"}
-                  onChange={() => setExportFormat("zip")}
-                  className="w-4 h-4 text-primary"
-                />
-                <span className="text-secondary text-sm">ZIP Archive</span>
               </label>
             </div>
           </div>

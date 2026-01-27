@@ -40,7 +40,7 @@ export const AdminCasesPage = () => {
   const cases = data?.cases || [];
   const totalCases = data?.cases?.length || 0;
 
-  const totalPages = Math.ceil(totalCases / 10) || 1; // Assuming 10 items per page
+  const totalPages = Math.ceil(totalCases / 10) || 1;
 
   return (
     <div className="space-y-4 sm:space-y-6 w-full">
@@ -153,8 +153,8 @@ export const AdminCasesPage = () => {
             <>
               {cases.map((caseItem: any) => (
                 <Card
-                  key={caseItem.id}
-                  onClick={() => handleCaseClick(caseItem.id)}
+                  key={caseItem._id}
+                  onClick={() => handleCaseClick(caseItem._id)}
                   className="hover:shadow-md p-4 sm:p-5 transition-shadow cursor-pointer"
                 >
                   <div className="flex sm:flex-row flex-col sm:justify-between sm:items-start gap-3 sm:gap-4">

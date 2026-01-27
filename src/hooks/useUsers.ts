@@ -5,6 +5,8 @@ import {
   createUserByAdmin,
   updateUserCredentials,
   toggleUserStatus,
+  updateProfile,
+  updatePassword,
 } from "@/services/userService/userService";
 
 // Query keys factory
@@ -93,7 +95,13 @@ export const useToggleUserStatus = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ userId, active }: { userId: string; active: boolean }) => {
+    mutationFn: async ({
+      userId,
+      active,
+    }: {
+      userId: string;
+      active: boolean;
+    }) => {
       const response = await toggleUserStatus(userId, { active });
       return response.data;
     },
@@ -104,6 +112,38 @@ export const useToggleUserStatus = () => {
       });
       queryClient.invalidateQueries({ queryKey: userKeys.allUsers() });
       queryClient.invalidateQueries({ queryKey: userKeys.allUsersList({}) });
+    },
+  });
+};
+
+// Update user profile mutation (name, email)
+export const useUpdateProfile = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: { name: string }) => {
+      const response = await updateProfile(data);
+      return response.data;
+    },
+    onSuccess: () => {
+      // Invalidate user data
+      queryClient.invalidateQueries({ queryKey: userKeys.all });
+    },
+  });
+};
+
+// Update user password mutation
+export const useUpdatePassword = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: { password: string; confirmPassword: string }) => {
+      const response = await updatePassword(data);
+      return response.data;
+    },
+    onSuccess: () => {
+      // Invalidate user data
+      queryClient.invalidateQueries({ queryKey: userKeys.all });
     },
   });
 };

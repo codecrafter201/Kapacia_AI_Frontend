@@ -2,18 +2,13 @@ import { useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { UploadFileModal } from "./UploadFileModal";
-import { ExportCaseModal } from "./ExportCaseModal";
-import { GenerateTimelineSummaryModal } from "./GenerateTimelineSummaryModal";
 import { useCaseById, useCaseTimeline } from "@/hooks/useCases";
 import { getFilePresignedUrl } from "@/services/fileService/fileService";
 import {
   ChevronLeft,
-  Mic,
-  Upload,
-  Download,
   Calendar,
   User,
+  Users,
   Hash,
   Clock,
   FileText,
@@ -24,33 +19,15 @@ import {
   Loader2,
 } from "lucide-react";
 import { TagsList } from "@/components/TagsList";
+import { UpdateCaseStatusModal } from "./UpdateCaseStatusModal";
 
-// interface TimelineEntry {
-//   id: string;
-//   date: string;
-//   type: "summary" | "session" | "file";
-//   title: string;
-//   status?: {
-//     label: string;
-//     color: "green" | "orange";
-//   };
-//   details?: string[];
-//   comment?: string;
-//   fileName?: string;
-//   fileSize?: string;
-//   uploadedBy?: string;
-// }
-
-export const CaseDetailPage = () => {
+export const AdminCaseDetailPage = () => {
   const { caseId } = useParams();
   const navigate = useNavigate();
   const [timelineFilter, setTimelineFilter] = useState("");
   const [sessionFilter, setSessionFilter] = useState("");
   const [loadAllEntries, setLoadAllEntries] = useState(false);
-  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
-  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
-  const [isGenerateSummaryModalOpen, setIsGenerateSummaryModalOpen] =
-    useState(false);
+  const [isUpdateStatusModalOpen, setIsUpdateStatusModalOpen] = useState(false);
 
   // Fetch case data
   const {
@@ -70,11 +47,11 @@ export const CaseDetailPage = () => {
   );
 
   const handleViewSummary = (summaryId: string) => {
-    navigate(`/practitioner/my-cases/${caseId}/summary/${summaryId}`);
+    navigate(`/admin/cases/${caseId}/summary/${summaryId}`);
   };
 
   const handleViewSession = (sessionId: string) => {
-    navigate(`/practitioner/my-cases/${caseId}/session/${sessionId}`);
+    navigate(`/admin/cases/${caseId}/session/${sessionId}`);
   };
 
   // Extract case info from API response
@@ -97,10 +74,7 @@ export const CaseDetailPage = () => {
     return (
       <Card className="p-6 text-center">
         <p className="text-red-600">Case not found or error loading case</p>
-        <Button
-          onClick={() => navigate("/practitioner/my-cases")}
-          className="mt-4"
-        >
+        <Button onClick={() => navigate("/admin/cases")} className="mt-4">
           Back to Cases
         </Button>
       </Card>
@@ -144,8 +118,7 @@ export const CaseDetailPage = () => {
       {/* Header */}
       <Card className="px-6 py-4">
         <Link
-          to={"/practitioner/my-cases"}
-          // onClick={() => navigate("/practitioner/my-cases")}
+          to={"/admin/cases"}
           className="flex items-center gap-2 mr-auto text-accent hover:text-secondary transition-colors"
         >
           <ChevronLeft className="w-4 h-4" />
@@ -167,51 +140,17 @@ export const CaseDetailPage = () => {
               {caseInfo.status || "Active"}
             </span>
           </div>
-
-          <div className="flex flex-wrap gap-2">
-            <Button
-              onClick={() =>
-                navigate(`/practitioner/my-cases/${caseId}/record-session`)
-              }
-              disabled={caseInfo.status !== "Active"}
-              className="flex items-center gap-2 disabled:opacity-50 text-white disabled:cursor-not-allowed"
-              title={
-                caseInfo.status !== "Active"
-                  ? `Cannot record session - case status is ${caseInfo.status}`
-                  : "Record new session"
-              }
-            >
-              <Mic className="w-4 h-4" />
-              Record Session
-            </Button>
-            <Button
-              onClick={() => setIsUploadModalOpen(true)}
-              disabled={caseInfo.status !== "Active"}
-              variant="outline"
-              className="flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-              title={
-                caseInfo.status !== "Active"
-                  ? `Cannot upload file - case status is ${caseInfo.status}`
-                  : "Upload file"
-              }
-            >
-              <Upload className="w-4 h-4" />
-              Upload File
-            </Button>
-            <Button
-              onClick={() => setIsExportModalOpen(true)}
-              variant="outline"
-              className="flex items-center gap-2"
-            >
-              <Download className="w-4 h-4" />
-              Export
-            </Button>
-          </div>
+          <Button
+            onClick={() => setIsUpdateStatusModalOpen(true)}
+            className="flex items-center text-white"
+          >
+            Update Case Status
+          </Button>
         </div>
       </Card>
 
       {/* Info Cards */}
-      <div className="gap-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="gap-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="flex flex-row justify-between items-center gap-3 p-4">
           <div className="gap-1 grid">
             <p className="text-accent text-sm">Created</p>
@@ -242,7 +181,7 @@ export const CaseDetailPage = () => {
           </div>
         </Card>
 
-        {/* <Card className="flex flex-row justify-between items-center gap-3 p-4">
+        <Card className="flex flex-row justify-between items-center gap-3 p-4">
           <div className="gap-1 grid">
             <p className="text-accent text-sm">Created by</p>
             <p className="text-secondary text-xl">
@@ -252,25 +191,10 @@ export const CaseDetailPage = () => {
           <div className="flex justify-center items-center bg-primary/10 rounded-full w-12 h-12">
             <Users className="w-6 h-6 text-primary" />
           </div>
-        </Card> */}
+        </Card>
 
         <Card className="flex flex-row justify-between items-center gap-3 p-4">
           <div className="flex-1 gap-1 grid">
-            {/* <p className="mb-1 text-accent text-sm">Tags</p>
-            <div className="flex flex-wrap gap-1">
-              {caseInfo.tags && caseInfo.tags.length > 0 ? (
-                caseInfo.tags.map((tag: string, index: number) => (
-                  <span
-                    key={index}
-                    className="bg-primary/10 px-2 py-0.5 rounded text-primary text-xs"
-                  >
-                    #{tag}
-                  </span>
-                ))
-              ) : (
-                <span className="text-accent text-xs">No tags</span>
-              )}
-            </div> */}
             <p className="mb-1 text-accent text-sm">Tags</p>
             <TagsList tags={caseInfo.tags} maxVisible={2} />
           </div>
@@ -322,18 +246,6 @@ export const CaseDetailPage = () => {
         <div className="flex sm:flex-row flex-col sm:justify-between sm:items-center gap-4 mb-4">
           <h2 className="text-secondary text-2xl">Timeline</h2>
           <div className="flex gap-2">
-            <Button
-              onClick={() => setIsGenerateSummaryModalOpen(true)}
-              disabled={caseInfo.status !== "Active"}
-              className="disabled:opacity-50 text-white disabled:cursor-not-allowed"
-              title={
-                caseInfo.status !== "Active"
-                  ? `Cannot generate summary - case status is ${caseInfo.status}`
-                  : "Generate timeline summary"
-              }
-            >
-              Generate Timelines Summary
-            </Button>
             <div className="relative">
               <select
                 value={timelineFilter}
@@ -357,11 +269,8 @@ export const CaseDetailPage = () => {
                 <option value="Created">Created</option>
                 <option value="Recording">Recording</option>
                 <option value="Processing">Processing</option>
-                {/* <option value="TranscriptionComplete">Transcription Complete</option> */}
-                {/* <option value="Ready">Ready</option> */}
                 <option value="Approved">Approved</option>
                 <option value="Rejected">Rejected</option>
-                {/* <option value="Error">Error</option> */}
               </select>
               <ChevronDown className="top-1/2 right-2 absolute w-4 h-4 text-accent -translate-y-1/2 pointer-events-none" />
             </div>
@@ -505,7 +414,7 @@ export const CaseDetailPage = () => {
                         )}
                       </div>
 
-                      {/* Action Buttons */}
+                      {/* Action Buttons - View Only */}
                       {entry.eventType === "timeline_summary" && (
                         <Button
                           onClick={() =>
@@ -530,9 +439,7 @@ export const CaseDetailPage = () => {
                               : "text-[#31B8C6] border-[#31B8C6] bg-[#31B8C6]/10 "
                           }`}
                         >
-                          {statusInfo?.color === "orange"
-                            ? "Review & Approve"
-                            : "View Session"}
+                          View Session
                           <ChevronRight className="w-4 h-4" />
                         </Button>
                       )}
@@ -593,40 +500,13 @@ export const CaseDetailPage = () => {
         )}
       </div>
 
-      {/* Upload File Modal */}
-      <UploadFileModal
-        isOpen={isUploadModalOpen}
-        onClose={() => setIsUploadModalOpen(false)}
+      {/* Update Case Status Modal */}
+      <UpdateCaseStatusModal
+        isOpen={isUpdateStatusModalOpen}
+        onClose={() => setIsUpdateStatusModalOpen(false)}
         caseId={caseId}
-        onUploadSuccess={(fileData) => {
-          console.log("File uploaded successfully:", fileData);
-          // Add file to timeline or refresh data
-        }}
-      />
-
-      {/* Export Case Modal */}
-      <ExportCaseModal
-        isOpen={isExportModalOpen}
-        onClose={() => setIsExportModalOpen(false)}
-        caseId={caseId}
-        caseName={`${caseInfo.internalRef || ""} (${
-          caseInfo.displayName || ""
-        })`}
-        onExportSuccess={(exportData) => {
-          console.log("Export case data:", exportData);
-          // Trigger export download
-        }}
-      />
-
-      {/* Generate Timeline Summary Modal */}
-      <GenerateTimelineSummaryModal
-        isOpen={isGenerateSummaryModalOpen}
-        onClose={() => setIsGenerateSummaryModalOpen(false)}
-        caseId={caseId}
-        onGenerateSuccess={(summaryData) => {
-          console.log("Timeline summary generated:", summaryData);
-          // Timeline and summaries will be auto-refreshed via query invalidation
-        }}
+        currentStatus={caseInfo.status || "Active"}
+        caseName={`${caseInfo.internalRef || ""} - ${caseInfo.displayName || ""}`}
       />
     </div>
   );

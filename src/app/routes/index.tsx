@@ -27,7 +27,10 @@ import { UserManagementPage } from "@/modules/admin/usermanagement/UserManagemen
 import { SupervisionManagementPage } from "@/modules/admin/supervision/SupervisionManagementPage";
 import { AdminSettingPage } from "@/modules/admin/settings/AdminSettingPage";
 import { AuditPage } from "@/modules/admin/audit/AuditPage";
-import AdminCasePageDetails from "@/modules/admin/cases/AdminCasePageDetails";
+// import AdminCasePageDetails from "@/modules/admin/cases/AdminCasePageDetails";
+import { AdminCaseDetailPage } from "@/modules/admin/cases/AdminCaseDetailPage";
+import { AdminSessionViewPage } from "@/modules/admin/cases/AdminSessionViewPage";
+import { AdminSummaryDetailPage } from "@/modules/admin/cases/AdminSummaryDetailPage";
 
 export function AppRoutes() {
   return (
@@ -60,7 +63,16 @@ export function AppRoutes() {
           <Route index element={<Navigate to="/admin/dashboard" replace />} />
           <Route path="dashboard" element={<AdminDashBoardPage />} />
           <Route path="cases" element={<AdminCasesPage />} />
-          <Route path="cases/:caseId" element={<AdminCasePageDetails />} />
+          {/* <Route path="cases/:caseId" element={<AdminCasePageDetails />} /> */}
+          <Route path="cases/:caseId" element={<AdminCaseDetailPage />} />
+          <Route
+            path="cases/:caseId/session/:sessionId"
+            element={<AdminSessionViewPage />}
+          />
+          <Route
+            path="cases/:caseId/summary/:summaryId"
+            element={<AdminSummaryDetailPage />}
+          />
           <Route path="user-management" element={<UserManagementPage />} />
           <Route
             path="supervision-management"

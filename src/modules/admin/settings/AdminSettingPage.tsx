@@ -1,33 +1,174 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/useAuth";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { User, HelpCircle } from "lucide-react";
+import { User, HelpCircle, Loader2 } from "lucide-react";
+import Swal from "sweetalert2";
+import { useUpdateProfile, useUpdatePassword } from "@/hooks/useUsers";
+import { backupAllData } from "@/services/backupService";
 
 export const AdminSettingPage = () => {
-  const { user } = useAuth();
+  const { user, setUser } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
+  const [isBackingUp, setIsBackingUp] = useState(false);
+  const updateProfileMutation = useUpdateProfile();
+  const updatePasswordMutation = useUpdatePassword();
+
   const [formData, setFormData] = useState({
-    name: user ? `Dr. ${user.name}` : "Dr. Sara Tan",
-    email: user?.email || "slothuiofficial@gmail.com",
-    password: "**********",
-    confirmPassword: "**********",
+    name: user?.name || "",
+    email: user?.email || "",
+    password: "",
+    confirmPassword: "",
   });
-  const [sessionLanguage, setSessionLanguage] = useState("english");
-  const [piiMasking, setPiiMasking] = useState("on");
+
+  // Update local state when user data changes
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        name: user.name || "",
+        email: user.email || "",
+        password: "",
+        confirmPassword: "",
+      });
+    }
+  }, [user]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-  //   const file = e.target.files?.[0];
-  //   if (file) {
-  //     console.log("File uploaded:", file);
-  //     // Handle file upload logic here
-  //   }
-  // };
+  const handleBackup = async () => {
+    try {
+      setIsBackingUp(true);
+
+      // Show loading
+      Swal.fire({
+        title: "Creating Backup...",
+        text: "Please wait while we backup all system data",
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        },
+      });
+
+      // Call backup API
+      const blob = await backupAllData();
+
+      // Download the backup file
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `kapacia-backup-${new Date().toISOString().split("T")[0]}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      Swal.fire({
+        icon: "success",
+        title: "Backup Complete",
+        text: "System backup downloaded successfully",
+        showConfirmButton: false,
+        timer: 1500,
+      });
+    } catch (error) {
+      console.error("Backup error:", error);
+      Swal.fire({
+        icon: "error",
+        title: "Backup Failed",
+        text: "Failed to create system backup. Please try again.",
+      });
+    } finally {
+      setIsBackingUp(false);
+    }
+  };
+
+  const handleSave = async () => {
+    try {
+      // Validate form
+      if (!formData.name.trim()) {
+        Swal.fire({
+          icon: "error",
+          title: "Validation Error",
+          text: "Name is required",
+        });
+        return;
+      }
+
+      // Update profile
+      const profileResponse = await updateProfileMutation.mutateAsync({
+        name: formData.name,
+      });
+
+      // Update user context with the complete updated user from backend
+      if (profileResponse && profileResponse.data) {
+        const updatedUserData = profileResponse.data.user || profileResponse.data.userData;
+        if (updatedUserData) {
+          setUser(updatedUserData);
+        }
+      }
+
+      // Update password if provided
+      if (formData.password || formData.confirmPassword) {
+        if (!formData.password || !formData.confirmPassword) {
+          Swal.fire({
+            icon: "error",
+            title: "Validation Error",
+            text: "Both password fields are required if updating password",
+          });
+          return;
+        }
+
+        if (formData.password !== formData.confirmPassword) {
+          Swal.fire({
+            icon: "error",
+            title: "Validation Error",
+            text: "Passwords do not match",
+          });
+          return;
+        }
+
+        if (formData.password.length < 6) {
+          Swal.fire({
+            icon: "error",
+            title: "Validation Error",
+            text: "Password must be at least 6 characters",
+          });
+          return;
+        }
+
+        await updatePasswordMutation.mutateAsync({
+          password: formData.password,
+          confirmPassword: formData.confirmPassword,
+        });
+      }
+
+      // Clear password fields
+      setFormData((prev) => ({
+        ...prev,
+        password: "",
+        confirmPassword: "",
+      }));
+
+      setIsEditing(false);
+
+      Swal.fire({
+        icon: "success",
+        title: "Success",
+        text: "Profile updated successfully",
+        showConfirmButton: false,
+        timer: 1500,
+      });
+    } catch (error) {
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text:
+          error instanceof Error ? error.message : "Failed to update profile",
+      });
+    }
+  };
 
   return (
     <div className="space-y-4 w-full">
@@ -43,17 +184,38 @@ export const AdminSettingPage = () => {
         </div>
         <div className="flex gap-2">
           <Button
-            onClick={() => setIsEditing(!isEditing)}
+            onClick={handleBackup}
+            disabled={isBackingUp}
             variant="link"
             className="bg-primary/10"
           >
-            Backup
+            {isBackingUp ? (
+              <>
+                <Loader2 className="mr-2 w-4 h-4 animate-spin" />
+                Backing up...
+              </>
+            ) : (
+              "Backup"
+            )}
           </Button>
           <Button
-            onClick={() => setIsEditing(!isEditing)}
-            className="bg-primary hover:bg-primary/80 rounded-full w-full sm:w-auto text-white"
+            onClick={isEditing ? handleSave : () => setIsEditing(true)}
+            disabled={
+              updateProfileMutation.isPending ||
+              updatePasswordMutation.isPending
+            }
+            className="bg-primary hover:bg-primary/80 disabled:opacity-50 rounded-full w-full sm:w-auto text-white"
           >
-            {isEditing ? "Save" : "Edit"}
+            {updateProfileMutation.isPending || updatePasswordMutation.isPending
+              ? (
+                <>
+                  <Loader2 className="mr-2 w-4 h-4 animate-spin" />
+                  Saving...
+                </>
+              )
+              : isEditing
+                ? "Save"
+                : "Edit"}
           </Button>
         </div>
       </div>
@@ -139,7 +301,7 @@ export const AdminSettingPage = () => {
                 name="email"
                 value={formData.email}
                 onChange={handleInputChange}
-                disabled={!isEditing}
+                disabled
                 className="py-2.5"
                 placeholder="Your email"
               />
@@ -155,10 +317,7 @@ export const AdminSettingPage = () => {
                 {user?.role || "Practitioner"}
               </span>
             </p>
-            <p className="text-accent">
-              <span className="font-medium">Supervised by:</span>{" "}
-              <span className="text-accent-foreground">Dr. Lim Cen</span>
-            </p>
+
             <p className="text-accent">
               <span className="font-medium">Member Since:</span>{" "}
               <span className="text-accent-foreground">Jan 1, 2024</span>
@@ -193,7 +352,7 @@ export const AdminSettingPage = () => {
       </Card>
 
       {/* Default Session Language */}
-      <Card className="p-6">
+      {/* <Card className="p-6">
         <h2 className="font-medium text-secondary text-sm">
           Default Session Language
         </h2>
@@ -225,7 +384,6 @@ export const AdminSettingPage = () => {
         </div>
       </Card>
 
-      {/* PII Masking Default */}
       <Card className="p-6">
         <h2 className="font-medium text-secondary text-sm">
           PII Masking Default
@@ -256,7 +414,7 @@ export const AdminSettingPage = () => {
             <span className="text-secondary text-sm">Off</span>
           </label>
         </div>
-      </Card>
+      </Card> */}
     </div>
   );
 };
