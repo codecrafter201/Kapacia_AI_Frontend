@@ -1,8 +1,9 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ChatModal } from "./ChatModal";
+import { AudioStatus } from "@/components/AudioStatus";
 import { useLocation } from "react-router-dom";
 import Swal from "sweetalert2";
 import {
@@ -14,7 +15,6 @@ import {
 import { useTranscriptBySession } from "@/hooks/useTranscript";
 import { useSoapNotesBySession, useApproveSoapNote } from "@/hooks/useSoap";
 
-import WaveSurfer from "wavesurfer.js";
 import {
   ChevronLeft,
   Download,
@@ -32,7 +32,7 @@ import { useQueryClient } from "@tanstack/react-query";
 export const SessionViewPage = () => {
   const { caseId, sessionId } = useParams();
   const navigate = useNavigate();
-  const [audioProgress, setAudioProgress] = useState(46);
+  const [audioProgress, setAudioProgress] = useState(0);
   const [approvalConfirmed, setApprovalConfirmed] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -40,8 +40,8 @@ export const SessionViewPage = () => {
   const [duration, setDuration] = useState("00:00:00");
   const [volume, setVolume] = useState(0.75);
   const [isMuted, setIsMuted] = useState(false);
-  const waveformRef = useRef<HTMLDivElement>(null);
-  const waveSurferRef = useRef<WaveSurfer | null>(null);
+  const [audioError, setAudioError] = useState<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
   const location = useLocation();
 
   const qc = useQueryClient();
@@ -54,8 +54,15 @@ export const SessionViewPage = () => {
     isLoading: loadingSession,
     isError: sessionError,
   } = useSessionById(sessionId);
-  const { data: presignedAudio, refetch: refetchAudioUrl } =
-    useSessionAudioUrl(sessionId);
+
+  // Fetch presigned audio URL with proper error handling
+  const {
+    data: presignedAudio,
+    isLoading: loadingAudio,
+    isError: audioFetchError,
+    refetch: refetchAudio,
+  } = useSessionAudioUrl(sessionId);
+
   const deleteSessionMutation = useDeleteSession();
   const updateSessionMutation = useUpdateSession();
 
@@ -80,6 +87,7 @@ export const SessionViewPage = () => {
 
   const sessionData = sessionResponse?.session || null;
   console.log("sessionResponse", sessionResponse);
+  console.log("presignedAudio RAW:", presignedAudio);
   const transcriptData = transcriptResponse?.data?.transcript || null;
   console.log("transcriptResponse", transcriptData);
 
@@ -180,6 +188,10 @@ export const SessionViewPage = () => {
 
   // Format time helper function
   const formatTime = (seconds: number) => {
+    // Handle invalid or infinite values
+    if (!isFinite(seconds) || isNaN(seconds) || seconds < 0) {
+      return "00:00:00";
+    }
     const hrs = Math.floor(seconds / 3600);
     const mins = Math.floor((seconds % 3600) / 60);
     const secs = Math.floor(seconds % 60);
@@ -228,113 +240,173 @@ export const SessionViewPage = () => {
     return timestamp;
   };
 
-  useEffect(() => {
-    if (!waveformRef.current) return;
+  // Stable reference for audio URL to prevent infinite re-renders
+  // Priority: 1) Fresh presigned URL from API, 2) Blob from navigation (just recorded)
+  const stableAudioUrl = useMemo(() => {
+    console.log("[stableAudioUrl] presignedAudio structure:", presignedAudio);
+    console.log("[stableAudioUrl] audioUrl from nav:", audioUrl);
 
-    const ws = WaveSurfer.create({
-      container: waveformRef.current,
-      waveColor: "#D1D5DB",
-      progressColor: "#188aec",
-      cursorColor: "#188aec",
-      height: 60,
-      barWidth: 2,
-      barGap: 2,
-    });
+    // Backend returns: { success: true, message: "...", audio: { url, key, expiresIn, expiresAt } }
+    let presignedUrl = null;
 
-    const loadPublicAudio = () => {
-      console.warn("Falling back to public audio");
-      ws.load("/audio/recording.ogg");
-    };
-
-    const resolvedAudioUrl =
-      (presignedAudio as any)?.audio?.url || (presignedAudio as any)?.url || sessionData?.audioUrl || audioUrl;
-
-    // Prefer blob (from navigation state), then backend audioUrl, else fallback
-    if (audioBlob) {
-      try {
-        ws.loadBlob(audioBlob);
-      } catch (err) {
-        console.error("WaveSurfer loadBlob failed, falling back", err);
-        if (resolvedAudioUrl) {
-          ws.load(resolvedAudioUrl);
-        } else {
-          loadPublicAudio();
-        }
-      }
-    } else if (resolvedAudioUrl) {
-      ws.load(resolvedAudioUrl);
-    } else {
-      loadPublicAudio();
+    if (presignedAudio) {
+      // Try different possible structures
+      presignedUrl =
+        (presignedAudio as any)?.audio?.url || // Direct response: { audio: { url } }
+        (presignedAudio as any)?.data?.audio?.url || // Wrapped: { data: { audio: { url } } }
+        (presignedAudio as any)?.data?.url || // Alternative: { data: { url } }
+        (presignedAudio as any)?.url; // Flat: { url }
     }
 
-    ws.on("ready", () => {
-      setDuration(formatTime(ws.getDuration()));
-    });
+    console.log("[stableAudioUrl] presignedUrl extracted:", presignedUrl);
 
-    ws.on("audioprocess", () => {
-      const time = ws.getCurrentTime();
-      const total = ws.getDuration() || 1;
+    if (presignedUrl) {
+      return presignedUrl;
+    }
+
+    // Fallback to blob URL from navigation state (only available immediately after recording)
+    if (audioUrl) {
+      return audioUrl;
+    }
+
+    console.log("[stableAudioUrl] No URL found, returning null");
+    return null;
+  }, [presignedAudio, audioUrl]);
+
+  // Auto-refresh audio URL when it's about to expire (every 90 minutes)
+  useEffect(() => {
+    if (!sessionId || !presignedAudio?.audio?.expiresAt) return;
+
+    const expiresAt = new Date(presignedAudio.audio.expiresAt).getTime();
+    const now = Date.now();
+    const timeUntilExpiry = expiresAt - now;
+
+    // Refresh 10 minutes before expiry
+    const refreshTime = Math.max(timeUntilExpiry - 10 * 60 * 1000, 60000); // At least 1 minute
+
+    if (refreshTime > 0) {
+      console.log(
+        `[Audio URL] Will refresh in ${Math.round(refreshTime / 60000)} minutes`,
+      );
+      const timer = setTimeout(() => {
+        console.log("[Audio URL] Refreshing expired presigned URL");
+        refetchAudio();
+      }, refreshTime);
+
+      return () => clearTimeout(timer);
+    }
+  }, [presignedAudio, sessionId, refetchAudio]);
+
+  // Setup audio element when URL changes
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio || !stableAudioUrl) return;
+
+    console.log(
+      "[Audio] Setting up audio element with URL:",
+      stableAudioUrl.substring(0, 80) + "...",
+    );
+
+    // Set audio source
+    audio.src = stableAudioUrl;
+    audio.crossOrigin = "anonymous";
+    audio.preload = "metadata";
+    audio.volume = volume;
+
+    // Audio event handlers
+    const handleLoadedMetadata = () => {
+      console.log("[Audio] Metadata loaded - duration:", audio.duration);
+      setDuration(formatTime(audio.duration));
+      setCurrentTime("00:00:00");
+      setAudioProgress(0);
+      setAudioError(null);
+    };
+
+    const handleTimeUpdate = () => {
+      const time = audio.currentTime;
+      const total = audio.duration || 1;
       setCurrentTime(formatTime(time));
       setAudioProgress((time / total) * 100);
-    });
+    };
 
-    ws.on("error", (err) => {
-      console.error("WaveSurfer error:", err);
-      // On auth/expired URL errors, refetch a new presigned URL and retry once
-      refetchAudioUrl()
-        .then((r) => {
-          const freshUrl = (r.data as any)?.audio?.url || (r.data as any)?.url;
-          if (freshUrl) {
-            try {
-              ws.load(freshUrl);
-              return;
-            } catch (_) {
-              // fallthrough to public audio
-            }
-          }
-          if (resolvedAudioUrl !== "/audio/recording.ogg") {
-            loadPublicAudio();
-          }
-        })
-        .catch(() => {
-          if (resolvedAudioUrl !== "/audio/recording.ogg") {
-            loadPublicAudio();
-          }
-        });
-    });
+    const handlePlay = () => setIsPlaying(true);
+    const handlePause = () => setIsPlaying(false);
+    const handleEnded = () => {
+      setIsPlaying(false);
+      setAudioProgress(0);
+      setCurrentTime("00:00:00");
+    };
 
-    ws.on("play", () => setIsPlaying(true));
-    ws.on("pause", () => setIsPlaying(false));
+    const handleError = (e: Event) => {
+      console.error("[Audio] Playback error:", e);
+      const target = e.target as HTMLAudioElement;
+      const error = target.error;
 
-    waveSurferRef.current = ws;
+      if (error) {
+        let errorMessage = "Audio playback failed";
+        switch (error.code) {
+          case MediaError.MEDIA_ERR_ABORTED:
+            errorMessage = "Audio playback was aborted";
+            break;
+          case MediaError.MEDIA_ERR_NETWORK:
+            errorMessage = "Network error occurred while loading audio";
+            break;
+          case MediaError.MEDIA_ERR_DECODE:
+            errorMessage = "Audio format not supported by browser";
+            break;
+          case MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED:
+            errorMessage = "Audio source not supported";
+            break;
+        }
+        setAudioError(errorMessage);
+      }
+    };
+
+    const handleCanPlay = () => {
+      console.log("[Audio] Audio can start playing");
+      setAudioError(null);
+    };
+
+    // Add event listeners
+    audio.addEventListener("loadedmetadata", handleLoadedMetadata);
+    audio.addEventListener("timeupdate", handleTimeUpdate);
+    audio.addEventListener("play", handlePlay);
+    audio.addEventListener("pause", handlePause);
+    audio.addEventListener("ended", handleEnded);
+    audio.addEventListener("error", handleError);
+    audio.addEventListener("canplay", handleCanPlay);
+
+    // Load the audio
+    audio.load();
 
     return () => {
-      ws.destroy();
-      waveSurferRef.current = null;
+      // Cleanup event listeners
+      audio.removeEventListener("loadedmetadata", handleLoadedMetadata);
+      audio.removeEventListener("timeupdate", handleTimeUpdate);
+      audio.removeEventListener("play", handlePlay);
+      audio.removeEventListener("pause", handlePause);
+      audio.removeEventListener("ended", handleEnded);
+      audio.removeEventListener("error", handleError);
+      audio.removeEventListener("canplay", handleCanPlay);
     };
-  }, [
-    audioBlob,
-    audioUrl,
-    sessionData?.audioUrl,
-    (presignedAudio as any)?.audio?.url,
-    (presignedAudio as any)?.url,
-  ]);
-
-  useEffect(() => {
-    return () => {
-      waveSurferRef.current?.destroy();
-      waveSurferRef.current = null;
-    };
-  }, []);
+  }, [stableAudioUrl, volume]);
 
   const handleDownload = () => {
-    const resolvedAudioUrl =
-      presignedAudio?.url || sessionData?.audioUrl || audioUrl;
-    if (!resolvedAudioUrl) return;
+    const resolvedAudioUrl = stableAudioUrl || sessionData?.audioUrl;
+    if (!resolvedAudioUrl) {
+      console.warn("[Download] No audio URL available");
+      return;
+    }
+
+    console.log(
+      "[Download] Downloading audio from:",
+      resolvedAudioUrl.substring(0, 80) + "...",
+    );
 
     const a = document.createElement("a");
     a.href = resolvedAudioUrl;
-    a.download = `session-${sessionId}.webm`;
+    a.download = `session-${sessionId}-${sessionData?.sessionNumber || "recording"}.webm`;
+    a.target = "_blank"; // Open in new tab for S3 URLs
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -342,42 +414,71 @@ export const SessionViewPage = () => {
 
   // Audio control functions
   const handlePlayPause = () => {
-    waveSurferRef.current?.playPause();
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    if (isPlaying) {
+      audio.pause();
+    } else {
+      audio.play().catch((err) => {
+        console.error("[Audio] Play failed:", err);
+        setAudioError("Failed to play audio. Please try again.");
+      });
+    }
   };
 
   const handleSkipBackward = () => {
-    const currentTime = waveSurferRef.current?.getCurrentTime() || 0;
-    waveSurferRef.current?.seekTo(
-      Math.max(
-        0,
-        (currentTime - 10) / (waveSurferRef.current?.getDuration() || 1),
-      ),
-    );
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    audio.currentTime = Math.max(0, audio.currentTime - 10);
   };
 
   const handleSkipForward = () => {
-    const currentTime = waveSurferRef.current?.getCurrentTime() || 0;
-    const duration = waveSurferRef.current?.getDuration() || 1;
-    waveSurferRef.current?.seekTo(Math.min(1, (currentTime + 10) / duration));
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    audio.currentTime = Math.min(audio.duration || 0, audio.currentTime + 10);
   };
 
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newVolume = parseFloat(e.target.value);
     setVolume(newVolume);
-    waveSurferRef.current?.setVolume(newVolume);
+
+    const audio = audioRef.current;
+    if (audio) {
+      audio.volume = newVolume;
+    }
+
     if (newVolume > 0 && isMuted) {
       setIsMuted(false);
     }
   };
 
   const toggleMute = () => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
     if (isMuted) {
-      waveSurferRef.current?.setVolume(volume);
+      audio.volume = volume;
       setIsMuted(false);
     } else {
-      waveSurferRef.current?.setVolume(0);
+      audio.volume = 0;
       setIsMuted(true);
     }
+  };
+
+  const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const audio = audioRef.current;
+    if (!audio || !audio.duration) return;
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const width = rect.width;
+    const percentage = clickX / width;
+    const newTime = percentage * audio.duration;
+
+    audio.currentTime = newTime;
   };
 
   console.log(
@@ -677,100 +778,216 @@ export const SessionViewPage = () => {
 
       {/* Audio Recording */}
       <Card className="p-6">
-        <h2 className="mb-4 text-secondary text-lg sm:text-2xl">
-          Audio Recording
-        </h2>
-
-        {/* Waveform */}
-        <div className="mb-4">
-          <div className="flex justify-between items-center mb-2">
-            <span className="font-medium text-primary text-sm">
-              {currentTime}
-            </span>
-            <span className="text-accent text-sm">{duration}</span>
-          </div>
-          <div ref={waveformRef} className="w-full" />
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-secondary text-lg sm:text-2xl">
+            Audio Recording
+          </h2>
+          <AudioStatus
+            isLoading={loadingAudio}
+            hasError={!!audioError || audioFetchError}
+            hasAudio={!!stableAudioUrl}
+            expiresAt={presignedAudio?.audio?.expiresAt}
+            onRetry={() => {
+              setAudioError(null);
+              refetchAudio();
+            }}
+          />
         </div>
 
-        {/* Audio Controls */}
-        <div className="flex justify-center items-center gap-4">
-          <button
-            onClick={handleSkipBackward}
-            className="hover:bg-gray-100 p-2 rounded-full transition-colors"
-            aria-label="Skip backward 10 seconds"
-          >
-            <SkipBack className="w-5 h-5 text-accent" />
-          </button>
+        {/* Audio Loading State */}
+        {loadingAudio && (
+          <div className="flex justify-center items-center py-8">
+            <Loader2 className="w-6 h-6 text-primary animate-spin" />
+            <span className="ml-2 text-accent">Loading audio...</span>
+          </div>
+        )}
 
-          <button
-            onClick={handlePlayPause}
-            className="flex justify-center items-center bg-primary hover:bg-primary/80 shadow-lg rounded-full w-12 h-12 transition-colors"
-            aria-label={isPlaying ? "Pause" : "Play"}
-          >
-            {isPlaying ? (
-              <Pause className="fill-white w-6 h-6 text-white" />
-            ) : (
-              <Play className="fill-white w-6 h-6 text-white" />
-            )}
-          </button>
-
-          <button
-            onClick={handleSkipForward}
-            className="hover:bg-gray-100 p-2 rounded-full transition-colors"
-            aria-label="Skip forward 10 seconds"
-          >
-            <SkipForward className="w-5 h-5 text-accent" />
-          </button>
-
-          <div className="flex items-center gap-2 ml-4">
-            <button
-              onClick={toggleMute}
-              className="hover:bg-gray-100 p-1 rounded transition-colors"
-              aria-label={isMuted ? "Unmute" : "Mute"}
-            >
-              <Volume2
-                className={`w-5 h-5 ${
-                  isMuted ? "text-gray-400" : "text-accent"
-                }`}
-              />
-            </button>
-            <div className="relative w-24">
-              <input
-                type="range"
-                min="0"
-                max="1"
-                step="0.01"
-                value={isMuted ? 0 : volume}
-                onChange={handleVolumeChange}
-                className="bg-gray-200 rounded-full w-full h-1 appearance-none cursor-pointer volume-slider"
-                style={{
-                  background: `linear-gradient(to right, #188aec 0%, #188aec ${
-                    (isMuted ? 0 : volume) * 100
-                  }%, #e5e7eb ${(isMuted ? 0 : volume) * 100}%, #e5e7eb 100%)`,
+        {/* Audio Error State */}
+        {(audioError || audioFetchError) && !loadingAudio && (
+          <div className="bg-red-50 mb-4 p-4 border border-red-200 rounded-lg">
+            <p className="mb-2 text-red-700 text-sm">⚠️ Audio Playback Error</p>
+            <p className="mb-3 text-red-600 text-xs">
+              {audioError || "Unable to load audio file"}
+            </p>
+            <div className="flex gap-2">
+              <Button
+                onClick={() => {
+                  setAudioError(null);
+                  refetchAudio();
                 }}
-                aria-label="Volume control"
-              />
-              <style>{`
-                .volume-slider::-webkit-slider-thumb {
-                  appearance: none;
-                  width: 12px;
-                  height: 12px;
-                  border-radius: 50%;
-                  background: #188aec;
-                  cursor: pointer;
-                }
-                .volume-slider::-moz-range-thumb {
-                  width: 12px;
-                  height: 12px;
-                  border-radius: 50%;
-                  background: #188aec;
-                  cursor: pointer;
-                  border: none;
-                }
-              `}</style>
+                size="sm"
+                variant="outline"
+                className="hover:bg-red-50 border-red-300 text-red-700"
+              >
+                Try Again
+              </Button>
+              {stableAudioUrl && (
+                <Button
+                  onClick={handleDownload}
+                  size="sm"
+                  variant="outline"
+                  className="hover:bg-blue-50 border-blue-300 text-blue-700"
+                >
+                  Download Audio
+                </Button>
+              )}
             </div>
           </div>
-        </div>
+        )}
+
+        {/* Audio Player - Simple HTML5 Audio */}
+        {(stableAudioUrl || loadingAudio) &&
+          !audioError &&
+          !audioFetchError && (
+            <>
+              {/* Hidden audio element */}
+              <audio
+                ref={audioRef}
+                crossOrigin="anonymous"
+                preload="metadata"
+                style={{ display: "none" }}
+              />
+
+              {/* Custom Progress Bar */}
+              <div className="mb-4">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="font-medium text-primary text-sm">
+                    {currentTime}
+                  </span>
+                  <span className="text-accent text-sm">{duration}</span>
+                </div>
+
+                {/* Progress Bar */}
+                <div
+                  className="bg-gray-200 hover:bg-gray-300 rounded-full w-full h-2 transition-colors cursor-pointer"
+                  onClick={handleProgressClick}
+                >
+                  <div
+                    className="bg-primary rounded-full h-full transition-all duration-100 ease-out"
+                    style={{ width: `${audioProgress}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* Audio Controls */}
+              <div className="flex justify-center items-center gap-4">
+                <button
+                  onClick={handleSkipBackward}
+                  disabled={!stableAudioUrl}
+                  className="hover:bg-gray-100 disabled:opacity-50 p-2 rounded-full transition-colors disabled:cursor-not-allowed"
+                  aria-label="Skip backward 10 seconds"
+                >
+                  <SkipBack className="w-5 h-5 text-accent" />
+                </button>
+
+                <button
+                  onClick={handlePlayPause}
+                  disabled={!stableAudioUrl}
+                  className="flex justify-center items-center bg-primary hover:bg-primary/80 disabled:opacity-50 shadow-lg rounded-full w-12 h-12 transition-colors disabled:cursor-not-allowed"
+                  aria-label={isPlaying ? "Pause" : "Play"}
+                >
+                  {isPlaying ? (
+                    <Pause className="fill-white w-6 h-6 text-white" />
+                  ) : (
+                    <Play className="fill-white w-6 h-6 text-white" />
+                  )}
+                </button>
+
+                <button
+                  onClick={handleSkipForward}
+                  disabled={!stableAudioUrl}
+                  className="hover:bg-gray-100 disabled:opacity-50 p-2 rounded-full transition-colors disabled:cursor-not-allowed"
+                  aria-label="Skip forward 10 seconds"
+                >
+                  <SkipForward className="w-5 h-5 text-accent" />
+                </button>
+
+                <div className="flex items-center gap-2 ml-4">
+                  <button
+                    onClick={toggleMute}
+                    disabled={!stableAudioUrl}
+                    className="hover:bg-gray-100 disabled:opacity-50 p-1 rounded transition-colors disabled:cursor-not-allowed"
+                    aria-label={isMuted ? "Unmute" : "Mute"}
+                  >
+                    <Volume2
+                      className={`w-5 h-5 ${
+                        isMuted ? "text-gray-400" : "text-accent"
+                      }`}
+                    />
+                  </button>
+                  <div className="relative w-24">
+                    <input
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.01"
+                      value={isMuted ? 0 : volume}
+                      onChange={handleVolumeChange}
+                      disabled={!stableAudioUrl}
+                      className="bg-gray-200 disabled:opacity-50 rounded-full w-full h-1 appearance-none cursor-pointer disabled:cursor-not-allowed volume-slider"
+                      style={{
+                        background: `linear-gradient(to right, #188aec 0%, #188aec ${
+                          (isMuted ? 0 : volume) * 100
+                        }%, #e5e7eb ${(isMuted ? 0 : volume) * 100}%, #e5e7eb 100%)`,
+                      }}
+                      aria-label="Volume control"
+                    />
+                    <style>{`
+                    .volume-slider::-webkit-slider-thumb {
+                      appearance: none;
+                      width: 12px;
+                      height: 12px;
+                      border-radius: 50%;
+                      background: #188aec;
+                      cursor: pointer;
+                    }
+                    .volume-slider::-moz-range-thumb {
+                      width: 12px;
+                      height: 12px;
+                      border-radius: 50%;
+                      background: #188aec;
+                      cursor: pointer;
+                      border: none;
+                    }
+                  `}</style>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
+        {/* Standard HTML5 Audio Fallback - Show when there are errors */}
+        {(audioError || audioFetchError) && stableAudioUrl && (
+          <div className="bg-blue-50 p-4 border border-blue-200 rounded-lg">
+            <p className="mb-3 text-blue-700 text-sm">
+              Using standard audio player
+            </p>
+            <audio
+              controls
+              className="w-full"
+              crossOrigin="anonymous"
+              preload="metadata"
+            >
+              <source src={stableAudioUrl} type="audio/webm" />
+              <source src={stableAudioUrl} type="audio/mpeg" />
+              <source src={stableAudioUrl} type="audio/wav" />
+              Your browser does not support the audio element.
+            </audio>
+          </div>
+        )}
+
+        {/* No Audio Available */}
+        {!stableAudioUrl &&
+          !loadingAudio &&
+          !audioError &&
+          !audioFetchError && (
+            <div className="bg-gray-50 p-8 border border-gray-200 rounded-lg text-center">
+              <p className="mb-2 text-gray-600">No audio recording available</p>
+              <p className="text-gray-500 text-sm">
+                This session doesn't have an audio recording yet.
+              </p>
+            </div>
+          )}
       </Card>
 
       {/* Transcription Section */}

@@ -547,7 +547,7 @@ export const CaseDetailPage = () => {
                             View File
                             <ChevronRight className="w-4 h-4" />
                           </Button>
-                          <Button
+                          {/* <Button
                             variant="outline"
                             size="sm"
                             className="bg-primary/10 border-primary text-primary"
@@ -559,7 +559,7 @@ export const CaseDetailPage = () => {
                             }
                           >
                             Download
-                          </Button>
+                          </Button> */}
                         </div>
                       )}
                     </div>

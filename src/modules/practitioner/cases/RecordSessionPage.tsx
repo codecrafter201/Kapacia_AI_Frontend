@@ -53,7 +53,9 @@ export const RecordSessionPage = () => {
   };
 
   const [sessionDate, setSessionDate] = useState(getCurrentDate());
-  const [sessionLanguage, setSessionLanguage] = useState(user?.language || "english");
+  const [sessionLanguage, setSessionLanguage] = useState(
+    user?.language || "english",
+  );
   const [patientSignature, setPatientSignature] = useState("");
   const [consentDate, setConsentDate] = useState(getCurrentDate());
   const [consent, setConsent] = useState(false);
@@ -549,11 +551,10 @@ export const RecordSessionPage = () => {
             throw new Error("Audio URL missing from upload response");
           }
 
-          // Update session with recording data (audioUrl should come from backend S3 response)
+          // Update session with recording metadata (audioUrl and audioS3Key already set by uploadRecording)
           await stopRecordingMutation.mutateAsync({
             sessionId: currentSessionId,
             data: {
-              audioUrl: uploadedAudioUrl,
               audioFileSizeBytes,
               durationSeconds,
             },
@@ -562,9 +563,8 @@ export const RecordSessionPage = () => {
           // Fetch the live-saved transcript (streamed from backend) for SOAP generation
           let transcriptTextForSoap = "";
           try {
-            const transcriptResponse = await getTranscriptBySession(
-              currentSessionId,
-            );
+            const transcriptResponse =
+              await getTranscriptBySession(currentSessionId);
 
             const transcriptData =
               transcriptResponse?.transcript ||
@@ -588,13 +588,10 @@ export const RecordSessionPage = () => {
                 .join("\n");
             }
 
-            console.log(
-              "[Stop Recording] Retrieved live transcript for SOAP",
-              {
-                hasTranscript: !!transcriptTextForSoap,
-                segments: transcriptData?.segments?.length || 0,
-              },
-            );
+            console.log("[Stop Recording] Retrieved live transcript for SOAP", {
+              hasTranscript: !!transcriptTextForSoap,
+              segments: transcriptData?.segments?.length || 0,
+            });
           } catch (transcriptError) {
             console.error(
               "[Stop Recording] Failed to fetch live transcript:",
@@ -768,7 +765,7 @@ export const RecordSessionPage = () => {
       setRecordingTime("00:00:00");
       setFileSizeMb("0.00 MB");
       setIsPaused(false);
-      isPausedRef.current = false;  // Sync ref state
+      isPausedRef.current = false; // Sync ref state
 
       // Stop current timer
       stopTimer();
@@ -779,10 +776,14 @@ export const RecordSessionPage = () => {
 
         try {
           // Check if stream is still active
-          const isStreamActive = mediaStreamRef.current.getTracks().some(track => track.readyState === 'live');
-          
+          const isStreamActive = mediaStreamRef.current
+            .getTracks()
+            .some((track) => track.readyState === "live");
+
           if (!isStreamActive) {
-            console.warn("[Reset Recording] Media stream is dead, getting new stream...");
+            console.warn(
+              "[Reset Recording] Media stream is dead, getting new stream...",
+            );
             // Get new stream
             const newStream = await navigator.mediaDevices.getUserMedia({
               audio: {
@@ -797,7 +798,9 @@ export const RecordSessionPage = () => {
 
           // Recreate AudioContext
           const audioContext = new AudioContext({ sampleRate: 16000 });
-          const sourceNode = audioContext.createMediaStreamSource(mediaStreamRef.current);
+          const sourceNode = audioContext.createMediaStreamSource(
+            mediaStreamRef.current,
+          );
           const processorNode = audioContext.createScriptProcessor(4096, 1, 1);
 
           audioContextRef.current = audioContext;
@@ -839,13 +842,18 @@ export const RecordSessionPage = () => {
 
           console.log("[Reset Recording] Audio pipeline recreated");
         } catch (audioError) {
-          console.error("[Reset Recording] Failed to recreate audio pipeline:", audioError);
+          console.error(
+            "[Reset Recording] Failed to recreate audio pipeline:",
+            audioError,
+          );
         }
       }
 
       // Recreate MediaRecorder with the existing stream
       if (mediaStreamRef.current) {
-        console.log("[Reset Recording] Recreating MediaRecorder with existing stream...");
+        console.log(
+          "[Reset Recording] Recreating MediaRecorder with existing stream...",
+        );
 
         const newMediaRecorder = new MediaRecorder(mediaStreamRef.current, {
           mimeType: "audio/webm;codecs=opus",
@@ -861,7 +869,10 @@ export const RecordSessionPage = () => {
               (acc, chunk) => acc + chunk.size,
               0,
             );
-            console.log("[Reset Recording] Data available, new size:", formatBytesToMb(totalBytes));
+            console.log(
+              "[Reset Recording] Data available, new size:",
+              formatBytesToMb(totalBytes),
+            );
             setFileSizeMb(formatBytesToMb(totalBytes));
           }
         };
@@ -895,7 +906,10 @@ export const RecordSessionPage = () => {
           await new Promise((resolve) => setTimeout(resolve, 300));
           console.log("[Reset Recording] Transcription reconnected");
         } catch (error) {
-          console.error("[Reset Recording] Failed to reconnect transcription:", error);
+          console.error(
+            "[Reset Recording] Failed to reconnect transcription:",
+            error,
+          );
         }
       }
 
@@ -969,7 +983,9 @@ export const RecordSessionPage = () => {
                   // Auto-disable PII masking when Mandarin is selected
                   if (e.target.value === "mandarin") {
                     setPiiMasking(false);
-                    toast.info("PII Masking automatically disabled for Mandarin");
+                    toast.info(
+                      "PII Masking automatically disabled for Mandarin",
+                    );
                   }
                 }}
                 className="bg-primary/5 px-3 py-2 focus:border-primary/40 rounded-lg outline-none focus:ring-2 focus:ring-primary w-full text-accent text-sm appearance-none"
@@ -1050,22 +1066,30 @@ export const RecordSessionPage = () => {
               </h3>
               <p className="text-accent text-xs">
                 Mask identifiers (NRIC, phone, address)
-                {sessionLanguage !== "english" && " - Only available with English"}
+                {sessionLanguage !== "english" &&
+                  " - Only available with English"}
               </p>
             </div>
             <div className="relative">
               <select
                 value={piiMasking ? "on" : "off"}
                 onChange={(e) => {
-                  if (e.target.value === "on" && sessionLanguage !== "english") {
-                    toast.error("PII Masking can only be enabled with English language");
+                  if (
+                    e.target.value === "on" &&
+                    sessionLanguage !== "english"
+                  ) {
+                    toast.error(
+                      "PII Masking can only be enabled with English language",
+                    );
                     return;
                   }
                   setPiiMasking(e.target.value === "on");
                 }}
                 disabled={sessionLanguage !== "english"}
                 className={`bg-primary/10 px-3 py-2 pr-10 focus:border-primary/40 rounded-lg outline-none focus:ring-2 focus:ring-primary/20 text-primary text-sm appearance-none ${
-                  sessionLanguage !== "english" ? "opacity-50 cursor-not-allowed" : ""
+                  sessionLanguage !== "english"
+                    ? "opacity-50 cursor-not-allowed"
+                    : ""
                 }`}
               >
                 <option value="off">OFF</option>
