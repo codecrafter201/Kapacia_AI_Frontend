@@ -18,6 +18,8 @@ import {
   Pause,
   Loader2,
   Trash2,
+  Monitor,
+  Info,
 } from "lucide-react";
 import {
   useCreateSession,
@@ -65,15 +67,36 @@ export const RecordSessionPage = () => {
   const [isPaused, setIsPaused] = useState(false);
   const [recordingTime, setRecordingTime] = useState("00:00:00");
   const [piiMasking, setPiiMasking] = useState(user?.piiMasking !== false);
-  // const [advancedLanguage, setAdvancedLanguage] = useState("english");
   const [allowTranscript, setAllowTranscript] = useState(true);
   const [sessionStartTime, setSessionStartTime] = useState<string | null>(null);
   const [fileSizeMb, setFileSizeMb] = useState("0.00 MB");
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+
+  // New state for audio capture mode
+  const [captureMode, setCaptureMode] = useState<"mic" | "mic+system">("mic");
+  const [systemAudioConsent, setSystemAudioConsent] = useState(false);
+
+  // Audio level monitoring for source identification
+  const [micLevel, setMicLevel] = useState(0);
+  const [systemLevel, setSystemLevel] = useState(0);
+  const [activeSource, setActiveSource] = useState<
+    "mic" | "system" | "both" | "none"
+  >("none");
+
   const audioContextRef = useRef<AudioContext | null>(null);
   const audioSourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
   const processorRef = useRef<ScriptProcessorNode | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
+
+  // New refs for system audio
+  const desktopStreamRef = useRef<MediaStream | null>(null);
+  const micStreamRef = useRef<MediaStream | null>(null);
+  const mixedStreamRef = useRef<MediaStream | null>(null);
+
+  // Refs for audio level analysis
+  const micAnalyserRef = useRef<AnalyserNode | null>(null);
+  const systemAnalyserRef = useRef<AnalyserNode | null>(null);
+  const levelMonitorIntervalRef = useRef<number | null>(null);
 
   // API hooks
   const createSessionMutation = useCreateSession();
@@ -82,7 +105,7 @@ export const RecordSessionPage = () => {
   const uploadRecordingMutation = useUploadRecording();
   const generateSoapNoteMutation = useGenerateSoapNote();
 
-  // Transcription hook
+  // Transcription hook - with speaker diarization config
   const {
     transcriptEntries,
     currentPartialTranscript,
@@ -100,12 +123,10 @@ export const RecordSessionPage = () => {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   console.log("recordedBlob", recordedBlob);
-  // const recordPluginRef = useRef<any>(null);
   const recordPluginRef = useRef<ReturnType<typeof RecordPlugin.create> | null>(
     null,
   );
 
-  // const timerRef = useRef<NodeJS.Timeout | null>(null);
   const timerRef = useRef<number | null>(null);
   const elapsedSecondsRef = useRef<number>(0);
   const recordingStartTimeRef = useRef<number | null>(null);
@@ -137,7 +158,6 @@ export const RecordSessionPage = () => {
     record.on("record-end", (blob: Blob) => {
       console.log("Recorded blob:", blob);
       setRecordedBlob(blob);
-      // TODO: upload blob / save session
     });
 
     waveSurferRef.current = waveSurfer;
@@ -148,20 +168,91 @@ export const RecordSessionPage = () => {
     };
   }, []);
 
+  // Check browser support for system audio capture
+  const checkSystemAudioSupport = () => {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+      toast.error(
+        "System audio capture is not supported in this browser. Please use Chrome or Edge.",
+      );
+      return false;
+    }
+    return true;
+  };
+
+  // Audio level monitoring function
+  const startAudioLevelMonitoring = () => {
+    if (captureMode !== "mic+system") return;
+
+    const monitorLevels = () => {
+      let micVol = 0;
+      let sysVol = 0;
+
+      if (micAnalyserRef.current) {
+        const micData = new Uint8Array(
+          micAnalyserRef.current.frequencyBinCount,
+        );
+        micAnalyserRef.current.getByteFrequencyData(micData);
+        micVol = micData.reduce((sum, val) => sum + val, 0) / micData.length;
+      }
+
+      if (systemAnalyserRef.current) {
+        const sysData = new Uint8Array(
+          systemAnalyserRef.current.frequencyBinCount,
+        );
+        systemAnalyserRef.current.getByteFrequencyData(sysData);
+        sysVol = sysData.reduce((sum, val) => sum + val, 0) / sysData.length;
+      }
+
+      // Normalize to 0-100 scale
+      const micLevel = Math.min(100, (micVol / 128) * 100);
+      const sysLevel = Math.min(100, (sysVol / 128) * 100);
+
+      setMicLevel(micLevel);
+      setSystemLevel(sysLevel);
+
+      // Determine active source (threshold: 10)
+      const micActive = micLevel > 10;
+      const sysActive = sysLevel > 10;
+
+      if (micActive && sysActive) {
+        setActiveSource("both");
+      } else if (micActive) {
+        setActiveSource("mic");
+      } else if (sysActive) {
+        setActiveSource("system");
+      } else {
+        setActiveSource("none");
+      }
+    };
+
+    levelMonitorIntervalRef.current = window.setInterval(monitorLevels, 100);
+  };
+
+  const stopAudioLevelMonitoring = () => {
+    if (levelMonitorIntervalRef.current) {
+      clearInterval(levelMonitorIntervalRef.current);
+      levelMonitorIntervalRef.current = null;
+    }
+    setMicLevel(0);
+    setSystemLevel(0);
+    setActiveSource("none");
+  };
+
   const startTimer = () => {
     timerRef.current = window.setInterval(() => {
-      // Only increment timer when NOT paused - use ref to avoid closure issues
       if (!isPausedRef.current) {
         elapsedSecondsRef.current++;
       }
-      const m = String(Math.floor(elapsedSecondsRef.current / 60)).padStart(
+      const h = String(Math.floor(elapsedSecondsRef.current / 3600)).padStart(
         2,
         "0",
       );
+      const m = String(
+        Math.floor((elapsedSecondsRef.current % 3600) / 60),
+      ).padStart(2, "0");
       const s = String(elapsedSecondsRef.current % 60).padStart(2, "0");
-      setRecordingTime(`${m}:${s}`);
+      setRecordingTime(`${h}:${m}:${s}`);
 
-      // Auto-stop recording when 2-hour limit is reached
       if (elapsedSecondsRef.current >= RECORDING_TIME_LIMIT) {
         handleStopRecording();
       }
@@ -181,9 +272,9 @@ export const RecordSessionPage = () => {
 
     const handleTranscriptToggle = async () => {
       if (allowTranscript) {
-        // Reconnect transcription
         console.log("[Pause/Resume] Reconnecting transcription...");
         try {
+          // Pass speaker diarization config when connecting
           await connectTranscription(currentSessionId);
           await new Promise((resolve) => setTimeout(resolve, 300));
           console.log("[Pause/Resume] Transcription reconnected");
@@ -191,7 +282,6 @@ export const RecordSessionPage = () => {
           console.error("[Pause/Resume] Failed to reconnect:", error);
         }
       } else {
-        // Disconnect transcription
         console.log("[Pause/Resume] Disconnecting transcription...");
         disconnectTranscription();
       }
@@ -224,15 +314,14 @@ export const RecordSessionPage = () => {
     });
   };
 
-  // const handleStartRecording = () => {
-  //   if (allConsentsChecked) {
-  //     setIsRecording(true);
-  //     // Add recording logic here
-  //   }
-  // };
-
   const handleStartRecording = async () => {
     if (!consent || !caseId) return;
+
+    // Additional check for system audio consent
+    if (captureMode === "mic+system" && !systemAudioConsent) {
+      toast.error("Please provide consent for system audio capture");
+      return;
+    }
 
     setIsStarting(true);
 
@@ -253,33 +342,165 @@ export const RecordSessionPage = () => {
       // Step 2: Start recording in backend
       await startRecordingMutation.mutateAsync(sessionId);
 
-      // Step 3: Get user media with mono audio
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-          channelCount: 1, // Force mono
-        },
-      });
+      let finalStream: MediaStream;
 
-      // Store stream reference for potential reset
-      mediaStreamRef.current = stream;
+      // Step 3: Get audio streams based on capture mode
+      if (captureMode === "mic+system") {
+        console.log("[System Audio] Starting system + microphone capture...");
 
-      // Step 4: Connect to transcription WebSocket with sessionId
+        if (!checkSystemAudioSupport()) {
+          throw new Error("System audio capture not supported");
+        }
+
+        try {
+          // Get system audio via screen share
+          const displayStream = await navigator.mediaDevices.getDisplayMedia({
+            video: {
+              width: 1,
+              height: 1,
+              frameRate: 1,
+            },
+            audio: {
+              echoCancellation: true,
+              noiseSuppression: true,
+              autoGainControl: true,
+            },
+          });
+
+          desktopStreamRef.current = displayStream;
+
+          // Listen for user stopping the screen share
+          displayStream.getVideoTracks()[0].addEventListener("ended", () => {
+            console.log("[System Audio] User stopped screen sharing");
+            toast.warning(
+              "Screen sharing stopped. Switching to microphone only.",
+            );
+            stopAudioLevelMonitoring();
+          });
+
+          // Get microphone audio
+          const micStream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+              echoCancellation: true,
+              noiseSuppression: true,
+              autoGainControl: true,
+              channelCount: 1,
+            },
+          });
+
+          micStreamRef.current = micStream;
+
+          // Create audio context to mix streams
+          const audioContext = new AudioContext({ sampleRate: 16000 });
+          audioContextRef.current = audioContext;
+
+          // Create source nodes
+          const micSource = audioContext.createMediaStreamSource(micStream);
+          const desktopSource =
+            audioContext.createMediaStreamSource(displayStream);
+
+          // Create analysers for level monitoring
+          const micAnalyser = audioContext.createAnalyser();
+          const systemAnalyser = audioContext.createAnalyser();
+
+          micAnalyser.fftSize = 256;
+          systemAnalyser.fftSize = 256;
+
+          micAnalyserRef.current = micAnalyser;
+          systemAnalyserRef.current = systemAnalyser;
+
+          // Create gain nodes for volume control
+          const micGain = audioContext.createGain();
+          const systemGain = audioContext.createGain();
+
+          micGain.gain.value = 0.8; // 80% microphone volume
+          systemGain.gain.value = 1.2; // 120% system audio (boost meeting audio)
+
+          // Create destination for mixed audio
+          const destination = audioContext.createMediaStreamDestination();
+
+          // Connect with analysers: mic -> analyser -> gain -> destination
+          micSource.connect(micAnalyser);
+          micAnalyser.connect(micGain);
+          micGain.connect(destination);
+
+          // Connect: desktop -> analyser -> gain -> destination
+          desktopSource.connect(systemAnalyser);
+          systemAnalyser.connect(systemGain);
+          systemGain.connect(destination);
+
+          finalStream = destination.stream;
+          mixedStreamRef.current = finalStream;
+
+          // Start monitoring audio levels
+          startAudioLevelMonitoring();
+
+          console.log(
+            "[System Audio] Successfully mixed microphone + system audio",
+          );
+          toast.success("Recording microphone + system audio");
+        } catch (displayError) {
+          console.error(
+            "[System Audio] Failed to get display media:",
+            displayError,
+          );
+
+          // Fallback to microphone only
+          toast.warning("System audio capture failed. Using microphone only.");
+          const micStream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+              echoCancellation: true,
+              noiseSuppression: true,
+              autoGainControl: true,
+              channelCount: 1,
+            },
+          });
+          finalStream = micStream;
+          micStreamRef.current = micStream;
+        }
+      } else {
+        // Microphone only (original behavior)
+        const micStream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+            channelCount: 1,
+          },
+        });
+        finalStream = micStream;
+        micStreamRef.current = micStream;
+      }
+
+      // Store stream reference
+      mediaStreamRef.current = finalStream;
+
+      // Step 4: Connect to transcription WebSocket with speaker diarization config
       if (allowTranscript) {
         await connectTranscription(sessionId);
-        // Wait a bit for WebSocket to fully establish
         await new Promise((resolve) => setTimeout(resolve, 500));
       }
 
-      // Step 5: Set up AudioContext to produce PCM 16k mono for transcription
-      // IMPORTANT: Force 16kHz sample rate to match AWS Transcribe requirements
-      const audioContext = new AudioContext({ sampleRate: 16000 });
-      const sourceNode = audioContext.createMediaStreamSource(stream);
-      const processorNode = audioContext.createScriptProcessor(4096, 1, 1);
+      // Step 5: Set up AudioContext for PCM processing (transcription)
+      let processingAudioContext: AudioContext;
 
-      audioContextRef.current = audioContext;
+      if (captureMode === "mic+system" && audioContextRef.current) {
+        // Reuse existing audio context from mixing
+        processingAudioContext = audioContextRef.current;
+      } else {
+        // Create new audio context for mic-only
+        processingAudioContext = new AudioContext({ sampleRate: 16000 });
+        audioContextRef.current = processingAudioContext;
+      }
+
+      const sourceNode =
+        processingAudioContext.createMediaStreamSource(finalStream);
+      const processorNode = processingAudioContext.createScriptProcessor(
+        4096,
+        1,
+        1,
+      );
+
       audioSourceRef.current = sourceNode;
       processorRef.current = processorNode;
 
@@ -288,22 +509,18 @@ export const RecordSessionPage = () => {
 
         try {
           const input = e.inputBuffer.getChannelData(0);
-          const inputSampleRate = audioContext.sampleRate;
+          const inputSampleRate = processingAudioContext.sampleRate;
           const targetSampleRate = 16000;
 
-          // Convert and resample to PCM 16-bit at 16kHz
           const pcmData = resampleAudio(
             input,
             inputSampleRate,
             targetSampleRate,
           );
 
-          // Get ArrayBuffer from Int16Array
           const arrayBuffer = pcmData.buffer as ArrayBuffer;
 
-          // Validate and log (for debugging - remove in production)
           if (validatePCMBuffer(arrayBuffer)) {
-            // Log first chunk only
             const processor = processorRef.current as ScriptProcessorNode & {
               debugLogged?: boolean;
             };
@@ -312,12 +529,10 @@ export const RecordSessionPage = () => {
               processor.debugLogged = true;
             }
 
-            // Create blob with PCM data
             const pcmBlob = new Blob([arrayBuffer], {
               type: "application/octet-stream",
             });
 
-            // Send to transcription service
             sendAudioChunk(pcmBlob);
           }
         } catch (error) {
@@ -326,10 +541,10 @@ export const RecordSessionPage = () => {
       };
 
       sourceNode.connect(processorNode);
-      processorNode.connect(audioContext.destination);
+      processorNode.connect(processingAudioContext.destination);
 
-      // Step 6: Set up MediaRecorder only for saving WebM (not for transcription)
-      const mediaRecorder = new MediaRecorder(stream, {
+      // Step 6: Set up MediaRecorder for saving WebM
+      const mediaRecorder = new MediaRecorder(finalStream, {
         mimeType: "audio/webm;codecs=opus",
       });
 
@@ -356,12 +571,29 @@ export const RecordSessionPage = () => {
         setFileSizeMb(formatBytesToMb(finalBlob.size));
         console.log("Recorded blob:", finalBlob);
 
-        stream.getTracks().forEach((track) => track.stop());
+        // Stop all tracks
+        if (finalStream) {
+          finalStream.getTracks().forEach((track) => track.stop());
+        }
+        if (desktopStreamRef.current) {
+          desktopStreamRef.current.getTracks().forEach((track) => track.stop());
+        }
+        if (micStreamRef.current) {
+          micStreamRef.current.getTracks().forEach((track) => track.stop());
+        }
+
+        // Stop audio level monitoring
+        stopAudioLevelMonitoring();
 
         // Clean up audio nodes
-        processorNode.disconnect();
-        sourceNode.disconnect();
-        audioContext.close();
+        if (processorNode) processorNode.disconnect();
+        if (sourceNode) sourceNode.disconnect();
+        if (
+          processingAudioContext &&
+          processingAudioContext.state !== "closed"
+        ) {
+          processingAudioContext.close();
+        }
         audioContextRef.current = null;
         audioSourceRef.current = null;
         processorRef.current = null;
@@ -369,7 +601,7 @@ export const RecordSessionPage = () => {
 
       mediaRecorder.start(1000);
 
-      // Step 6: Start WaveSurfer visualization (optional)
+      // Step 7: Start WaveSurfer visualization
       if (recordPluginRef.current) {
         await recordPluginRef.current.startRecording();
       }
@@ -390,27 +622,32 @@ export const RecordSessionPage = () => {
       elapsedSecondsRef.current = 0;
       pauseStartTimeRef.current = null;
       totalPausedTimeRef.current = 0;
-      // eslint-disable-next-line react-hooks/purity
       recordingStartTimeRef.current = Date.now();
       startTimer();
     } catch (error) {
       console.error("Failed to start recording:", error);
+
+      // Clean up on error
+      if (desktopStreamRef.current) {
+        desktopStreamRef.current.getTracks().forEach((track) => track.stop());
+        desktopStreamRef.current = null;
+      }
+      if (micStreamRef.current) {
+        micStreamRef.current.getTracks().forEach((track) => track.stop());
+        micStreamRef.current = null;
+      }
+
+      stopAudioLevelMonitoring();
+
       alert("Failed to start recording. Please try again.");
     } finally {
       setIsStarting(false);
     }
   };
 
-  // const handleStopRecording = () => {
-  //   setIsRecording(false);
-  //   setIsPaused(false);
-  //   // Add stop recording logic here
-  // };
-
   const handleStopRecording = async () => {
     if (!currentSessionId) return;
 
-    // Show SweetAlert confirmation
     const result = await Swal.fire({
       title: "Stop Recording?",
       text: "Are you sure you want to stop recording and save this session?",
@@ -424,13 +661,11 @@ export const RecordSessionPage = () => {
       allowEscapeKey: false,
     });
 
-    // If user cancels, return
     if (!result.isConfirmed) {
       console.log("[Stop Recording] User cancelled");
       return;
     }
 
-    // Show loading dialog
     Swal.fire({
       title: "Processing Recording...",
       text: "Please wait while we upload and save your recording.",
@@ -441,7 +676,6 @@ export const RecordSessionPage = () => {
         Swal.showLoading();
 
         try {
-          // Stop MediaRecorder
           if (
             mediaRecorderRef.current &&
             mediaRecorderRef.current.state !== "inactive"
@@ -449,12 +683,10 @@ export const RecordSessionPage = () => {
             mediaRecorderRef.current.stop();
           }
 
-          // Stop WaveSurfer recording (if used)
           if (recordPluginRef.current) {
             await recordPluginRef.current.stopRecording();
           }
 
-          // Cleanup audio context and nodes if still present
           if (processorRef.current) {
             processorRef.current.disconnect();
             processorRef.current = null;
@@ -463,16 +695,15 @@ export const RecordSessionPage = () => {
             audioSourceRef.current.disconnect();
             audioSourceRef.current = null;
           }
-          // Don't close AudioContext yet - let it finish processing
-          // We'll close it after blob is ready
 
-          // Disconnect transcription WebSocket
           if (allowTranscript) {
             console.log("[Stop Recording] Disconnecting transcription...");
             disconnectTranscription();
           }
 
-          // Calculate duration BEFORE resetting the timer ref
+          // Stop audio level monitoring
+          stopAudioLevelMonitoring();
+
           const durationSeconds = elapsedSecondsRef.current;
           console.log(
             "[Stop Recording] Duration:",
@@ -484,7 +715,6 @@ export const RecordSessionPage = () => {
           setIsRecording(false);
           setIsPaused(false);
 
-          // Wait for the blob to be ready (use ref, not state which is async)
           let attempts = 0;
           while (!recordedBlobRef.current && attempts < 50) {
             await new Promise((resolve) => setTimeout(resolve, 10));
@@ -501,14 +731,20 @@ export const RecordSessionPage = () => {
             "bytes",
           );
 
-          // Fix WebM duration metadata (browsers don't write it correctly)
           console.log("[Stop Recording] Fixing WebM duration metadata...");
-          const fixedBlob = await fixWebmDuration(recordedBlobRef.current, durationSeconds * 1000, { logger: false });
+          const fixedBlob = await fixWebmDuration(
+            recordedBlobRef.current,
+            durationSeconds * 1000,
+            { logger: false },
+          );
           recordedBlobRef.current = fixedBlob;
           setRecordedBlob(fixedBlob);
-          console.log("[Stop Recording] WebM duration fixed:", durationSeconds, "seconds");
+          console.log(
+            "[Stop Recording] WebM duration fixed:",
+            durationSeconds,
+            "seconds",
+          );
 
-          // NOW close the audio context after blob is ready
           if (
             audioContextRef.current &&
             audioContextRef.current.state !== "closed"
@@ -526,7 +762,6 @@ export const RecordSessionPage = () => {
 
           const audioFileSizeBytes = recordedBlobRef.current.size;
 
-          // Create FormData and send blob to backend for S3 upload
           const formData = new FormData();
           formData.append("sessionId", currentSessionId);
           formData.append(
@@ -539,7 +774,6 @@ export const RecordSessionPage = () => {
 
           console.log("[Stop Recording] Uploading audio to S3...");
 
-          // Upload using the hook mutation
           const uploadData = await uploadRecordingMutation.mutateAsync({
             sessionId: currentSessionId,
             formData,
@@ -559,7 +793,6 @@ export const RecordSessionPage = () => {
             throw new Error("Audio URL missing from upload response");
           }
 
-          // Update session with recording metadata (audioUrl and audioS3Key already set by uploadRecording)
           await stopRecordingMutation.mutateAsync({
             sessionId: currentSessionId,
             data: {
@@ -568,7 +801,6 @@ export const RecordSessionPage = () => {
             },
           });
 
-          // Fetch the live-saved transcript (streamed from backend) for SOAP generation
           let transcriptTextForSoap = "";
           try {
             const transcriptResponse =
@@ -606,7 +838,6 @@ export const RecordSessionPage = () => {
               transcriptError,
             );
 
-            // Fallback to local transcript entries if available
             if (transcriptEntries.length > 0) {
               transcriptTextForSoap = transcriptEntries
                 .map(
@@ -617,7 +848,6 @@ export const RecordSessionPage = () => {
             }
           }
 
-          // Generate SOAP note (using transcript if available, or let backend fetch it)
           try {
             console.log("[Stop Recording] Generating SOAP note...");
             const soapPayload: any = {
@@ -627,7 +857,6 @@ export const RecordSessionPage = () => {
               maxTokens: 1200,
             };
 
-            // Include transcript text if we have it
             if (transcriptTextForSoap) {
               soapPayload.transcriptText = transcriptTextForSoap;
             }
@@ -640,7 +869,6 @@ export const RecordSessionPage = () => {
               "[Stop Recording] Failed to generate SOAP note:",
               soapError,
             );
-            // Continue anyway - SOAP generation error shouldn't block the session save
           }
 
           Swal.fire({
@@ -666,15 +894,10 @@ export const RecordSessionPage = () => {
     });
   };
 
-  // const handlePauseRecording = () => {
-  //   setIsPaused(!isPaused);
-  //   // Add pause/resume logic here
-  // };
   const handlePauseRecording = async () => {
     if (!mediaRecorderRef.current || !currentSessionId) return;
 
     if (isPaused) {
-      // Resume recording
       console.log("[Pause] Resuming recording...");
       if (mediaRecorderRef.current.state === "paused") {
         mediaRecorderRef.current.resume();
@@ -683,13 +906,11 @@ export const RecordSessionPage = () => {
         recordPluginRef.current.resumeRecording();
       }
 
-      // Add pause duration to total paused time
       if (pauseStartTimeRef.current) {
         totalPausedTimeRef.current += Date.now() - pauseStartTimeRef.current;
         pauseStartTimeRef.current = null;
       }
 
-      // Reconnect transcription if enabled
       if (allowTranscript) {
         console.log("[Pause] Reconnecting transcription...");
         try {
@@ -701,11 +922,14 @@ export const RecordSessionPage = () => {
         }
       }
 
-      // Resume timer from where it was
+      // Resume audio level monitoring
+      if (captureMode === "mic+system") {
+        startAudioLevelMonitoring();
+      }
+
       isPausedRef.current = false;
       startTimer();
     } else {
-      // Pause recording
       console.log("[Pause] Pausing recording...");
       if (mediaRecorderRef.current.state === "recording") {
         mediaRecorderRef.current.pause();
@@ -714,15 +938,14 @@ export const RecordSessionPage = () => {
         recordPluginRef.current.pauseRecording();
       }
 
-      // Record pause start time
       pauseStartTimeRef.current = Date.now();
       console.log("[Pause] Pause time recorded:", pauseStartTimeRef.current);
 
-      // Disconnect transcription
       if (allowTranscript) {
         console.log("[Pause] Disconnecting transcription...");
         disconnectTranscription();
       }
+      stopAudioLevelMonitoring();
 
       isPausedRef.current = true;
       stopTimer();
@@ -732,7 +955,6 @@ export const RecordSessionPage = () => {
   };
 
   const handleResetRecording = async () => {
-    // Show confirmation dialog
     const result = await Swal.fire({
       title: "Reset Recording?",
       text: "Are you sure you want to discard the current recording and start fresh?",
@@ -751,7 +973,6 @@ export const RecordSessionPage = () => {
     try {
       console.log("[Reset Recording] Starting reset process...");
 
-      // Stop current recording if active
       if (
         mediaRecorderRef.current &&
         mediaRecorderRef.current.state !== "inactive"
@@ -760,10 +981,8 @@ export const RecordSessionPage = () => {
         console.log("[Reset Recording] Stopped old MediaRecorder");
       }
 
-      // Wait a bit for onstop handler to complete
       await new Promise((resolve) => setTimeout(resolve, 100));
 
-      // Clear all recording data
       recordedBlobRef.current = null;
       setRecordedBlob(null);
       audioChunksRef.current = [];
@@ -773,17 +992,15 @@ export const RecordSessionPage = () => {
       setRecordingTime("00:00:00");
       setFileSizeMb("0.00 MB");
       setIsPaused(false);
-      isPausedRef.current = false; // Sync ref state
+      isPausedRef.current = false;
 
-      // Stop current timer
       stopTimer();
+      stopAudioLevelMonitoring();
 
-      // Recreate the audio pipeline (AudioContext + ScriptProcessor)
       if (mediaStreamRef.current) {
         console.log("[Reset Recording] Recreating audio pipeline...");
 
         try {
-          // Check if stream is still active
           const isStreamActive = mediaStreamRef.current
             .getTracks()
             .some((track) => track.readyState === "live");
@@ -792,20 +1009,72 @@ export const RecordSessionPage = () => {
             console.warn(
               "[Reset Recording] Media stream is dead, getting new stream...",
             );
-            // Get new stream
-            const newStream = await navigator.mediaDevices.getUserMedia({
-              audio: {
-                echoCancellation: true,
-                noiseSuppression: true,
-                autoGainControl: true,
-                channelCount: 1,
-              },
-            });
-            mediaStreamRef.current = newStream;
+
+            if (captureMode === "mic+system") {
+              toast.info("Please select screen/window to share again");
+
+              const displayStream =
+                await navigator.mediaDevices.getDisplayMedia({
+                  video: { width: 1, height: 1, frameRate: 1 },
+                  audio: true,
+                });
+
+              const micStream = await navigator.mediaDevices.getUserMedia({
+                audio: { channelCount: 1, sampleRate: 16000 },
+              });
+
+              desktopStreamRef.current = displayStream;
+              micStreamRef.current = micStream;
+
+              const audioContext = new AudioContext({ sampleRate: 16000 });
+              const micSource = audioContext.createMediaStreamSource(micStream);
+              const desktopSource =
+                audioContext.createMediaStreamSource(displayStream);
+              const destination = audioContext.createMediaStreamDestination();
+
+              // Recreate analysers
+              const micAnalyser = audioContext.createAnalyser();
+              const systemAnalyser = audioContext.createAnalyser();
+              micAnalyser.fftSize = 256;
+              systemAnalyser.fftSize = 256;
+              micAnalyserRef.current = micAnalyser;
+              systemAnalyserRef.current = systemAnalyser;
+
+              const micGain = audioContext.createGain();
+              const systemGain = audioContext.createGain();
+              micGain.gain.value = 0.8;
+              systemGain.gain.value = 1.2;
+
+              micSource
+                .connect(micAnalyser)
+                .connect(micGain)
+                .connect(destination);
+              desktopSource
+                .connect(systemAnalyser)
+                .connect(systemGain)
+                .connect(destination);
+
+              mediaStreamRef.current = destination.stream;
+              audioContextRef.current = audioContext;
+
+              // Restart audio level monitoring
+              startAudioLevelMonitoring();
+            } else {
+              const newStream = await navigator.mediaDevices.getUserMedia({
+                audio: {
+                  echoCancellation: true,
+                  noiseSuppression: true,
+                  autoGainControl: true,
+                  channelCount: 1,
+                },
+              });
+              mediaStreamRef.current = newStream;
+              micStreamRef.current = newStream;
+            }
           }
 
-          // Recreate AudioContext
-          const audioContext = new AudioContext({ sampleRate: 16000 });
+          const audioContext =
+            audioContextRef.current || new AudioContext({ sampleRate: 16000 });
           const sourceNode = audioContext.createMediaStreamSource(
             mediaStreamRef.current,
           );
@@ -815,7 +1084,6 @@ export const RecordSessionPage = () => {
           audioSourceRef.current = sourceNode;
           processorRef.current = processorNode;
 
-          // Set up audio processing for transcription
           processorNode.onaudioprocess = (e) => {
             if (!allowTranscript) return;
 
@@ -837,7 +1105,6 @@ export const RecordSessionPage = () => {
                   type: "application/octet-stream",
                 });
 
-                // Send to transcription service
                 sendAudioChunk(pcmBlob);
               }
             } catch (error) {
@@ -857,7 +1124,6 @@ export const RecordSessionPage = () => {
         }
       }
 
-      // Recreate MediaRecorder with the existing stream
       if (mediaStreamRef.current) {
         console.log(
           "[Reset Recording] Recreating MediaRecorder with existing stream...",
@@ -896,20 +1162,16 @@ export const RecordSessionPage = () => {
           console.log("Recorded blob:", finalBlob);
         };
 
-        // Start recording with 1000ms timeslice like original
         newMediaRecorder.start(1000);
         console.log("[Reset Recording] New MediaRecorder started");
       }
 
-      // Reconnect transcription if enabled
       if (allowTranscript && currentSessionId) {
         console.log("[Reset Recording] Reconnecting transcription...");
         try {
-          // Disconnect first to clean up old connection
           disconnectTranscription();
           await new Promise((resolve) => setTimeout(resolve, 100));
 
-          // Reconnect
           await connectTranscription(currentSessionId);
           await new Promise((resolve) => setTimeout(resolve, 300));
           console.log("[Reset Recording] Transcription reconnected");
@@ -921,7 +1183,6 @@ export const RecordSessionPage = () => {
         }
       }
 
-      // Restart timer for fresh recording
       startTimer();
 
       Swal.fire({
@@ -988,7 +1249,6 @@ export const RecordSessionPage = () => {
                 value={sessionLanguage}
                 onChange={(e) => {
                   setSessionLanguage(e.target.value);
-                  // Auto-disable PII masking when Mandarin is selected
                   if (e.target.value === "mandarin") {
                     setPiiMasking(false);
                     toast.info(
@@ -1033,6 +1293,31 @@ export const RecordSessionPage = () => {
               </ul>
             </div>
           </label>
+
+          {/* System Audio Consent - Only show if system audio is selected */}
+          {captureMode === "mic+system" && (
+            <label className="flex items-start gap-3 bg-blue-50 p-3 rounded-lg cursor-pointer">
+              <input
+                type="checkbox"
+                checked={systemAudioConsent}
+                onChange={() => setSystemAudioConsent(!systemAudioConsent)}
+                className="mt-1 rounded-full focus:ring-2 focus:ring-blue-500 w-4 h-4 text-blue-600 shrink-0"
+              />
+              <div className="text-secondary text-sm">
+                <p className="flex items-center gap-2 mb-1 font-medium">
+                  <Monitor className="w-4 h-4" />
+                  System Audio Recording Consent
+                </p>
+                <ul className="space-y-1 pl-5 list-disc">
+                  <li>
+                    Recording system/desktop audio (e.g., Zoom/Meet calls)
+                  </li>
+                  <li>May capture background sounds and notifications</li>
+                  <li>Screen sharing permission required</li>
+                </ul>
+              </div>
+            </label>
+          )}
         </div>
 
         <div className="gap-4 grid grid-cols-1 sm:grid-cols-2 pt-4">
@@ -1066,6 +1351,95 @@ export const RecordSessionPage = () => {
         <h2 className="text-secondary text-xl">Advanced Options</h2>
 
         <div className="space-y-4">
+          {/* Audio Capture Mode */}
+          <div className="flex sm:flex-row flex-col sm:justify-between sm:items-start gap-2 bg-blue-50 p-4 rounded-lg">
+            <div className="flex-1">
+              <h3 className="flex items-center gap-2 font-medium text-secondary text-sm">
+                <Monitor className="w-4 h-4" />
+                Audio Capture Mode
+              </h3>
+              <p className="mt-1 text-accent text-xs">
+                Choose to record microphone only or include system audio (for
+                Zoom/Meet meetings)
+              </p>
+              <div className="flex items-start gap-2 mt-2 text-blue-600 text-xs">
+                <Info className="mt-0.5 w-3 h-3 shrink-0" />
+                <span>
+                  System audio requires screen sharing permission and works best
+                  in Chrome/Edge
+                </span>
+              </div>
+            </div>
+            <div className="relative">
+              <select
+                value={captureMode}
+                onChange={(e) => {
+                  const newMode = e.target.value as "mic" | "mic+system";
+                  setCaptureMode(newMode);
+                  if (newMode === "mic") {
+                    setSystemAudioConsent(false);
+                  }
+                }}
+                disabled={isRecording}
+                className={`bg-white px-3 py-2 pr-10 focus:border-blue-500 rounded-lg outline-none focus:ring-2 focus:ring-blue-500/20 text-primary text-sm appearance-none border-2 border-blue-200 min-w-[200px] ${
+                  isRecording ? "opacity-50 cursor-not-allowed" : ""
+                }`}
+              >
+                <option value="mic">🎤 Microphone Only</option>
+                <option value="mic+system">🖥️ Microphone + System Audio</option>
+              </select>
+              <ChevronDown className="top-1/2 right-3 absolute w-4 h-4 text-accent -translate-y-1/2 pointer-events-none" />
+            </div>
+          </div>
+
+          {/* Speaker Diarization Settings - NEW */}
+          {/* <div className="flex sm:flex-row flex-col sm:justify-between sm:items-start gap-2 bg-purple-50 p-4 rounded-lg">
+            <div className="flex-1">
+              <h3 className="flex items-center gap-2 font-medium text-secondary text-sm">
+                <Users className="w-4 h-4" />
+                Speaker Identification (Diarization)
+              </h3>
+              <p className="mt-1 text-accent text-xs">
+                Automatically identify and separate different speakers in the
+                conversation
+              </p>
+              <div className="flex items-center gap-4 mt-3">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={enableSpeakerDiarization}
+                    onChange={(e) =>
+                      setEnableSpeakerDiarization(e.target.checked)
+                    }
+                    disabled={isRecording}
+                    className="rounded focus:ring-2 focus:ring-purple-500 w-4 h-4 text-purple-600"
+                  />
+                  <span className="text-secondary text-xs">
+                    Enable Speaker ID
+                  </span>
+                </label>
+                {enableSpeakerDiarization && (
+                  <div className="flex items-center gap-2">
+                    <label className="text-secondary text-xs">
+                      Max Speakers:
+                    </label>
+                    <select
+                      value={maxSpeakers}
+                      onChange={(e) => setMaxSpeakers(Number(e.target.value))}
+                      disabled={isRecording}
+                      className="bg-white px-2 py-1 border-2 border-purple-200 rounded text-purple-600 text-xs"
+                    >
+                      <option value={2}>2 (Recommended)</option>
+                      <option value={3}>3</option>
+                      <option value={4}>4</option>
+                      <option value={5}>5</option>
+                    </select>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div> */}
+
           {/* PII Masking */}
           <div className="flex sm:flex-row flex-col sm:justify-between sm:items-center gap-2">
             <div>
@@ -1106,25 +1480,6 @@ export const RecordSessionPage = () => {
               <ChevronDown className="top-1/2 right-3 absolute w-4 h-4 text-accent -translate-y-1/2 pointer-events-none" />
             </div>
           </div>
-
-          {/* Language */}
-          {/* <div className="flex sm:flex-row flex-col sm:justify-between sm:items-center gap-2">
-            <div>
-              <h3 className="text-secondary text-sm">Language</h3>
-              <p className="text-accent text-xs">Choose the Language</p>
-            </div>
-            <div className="relative">
-              <select
-                value={advancedLanguage}
-                onChange={(e) => setAdvancedLanguage(e.target.value)}
-                className="bg-primary/10 px-3 py-2 pr-10 focus:border-primary/40 rounded-lg outline-none focus:ring-2 focus:ring-primary/20 text-primary text-sm appearance-none"
-              >
-                <option value="english">English</option>
-                <option value="mandarin">Mandarin</option>
-              </select>
-              <ChevronDown className="top-1/2 right-3 absolute w-4 h-4 text-accent -translate-y-1/2 pointer-events-none" />
-            </div>
-          </div> */}
         </div>
       </Card>
 
@@ -1133,15 +1488,64 @@ export const RecordSessionPage = () => {
         <h2 className="text-secondary text-xl">Audio Recording</h2>
 
         <div className="flex flex-col justify-center items-center py-8">
-          {/* Mic Icon */}
-          <div className="flex justify-center items-center bg-primary shadow-lg mb-6 rounded-full w-20 h-20">
+          {/* Mic Icon with Mode Indicator */}
+          <div className="relative flex justify-center items-center bg-primary shadow-lg mb-6 rounded-full w-20 h-20">
             <Mic className="w-10 h-10 text-white" />
+            {captureMode === "mic+system" && (
+              <div className="-right-1 -bottom-1 absolute bg-blue-500 p-1.5 border-2 border-white rounded-full">
+                <Monitor className="w-3 h-3 text-white" />
+              </div>
+            )}
           </div>
 
           {/* Timer */}
           <div className="mb-6 font-mono text-primary text-4xl">
             {recordingTime}
           </div>
+
+          {/* Audio Source Indicators - NEW (only show when recording with system audio) */}
+          {isRecording && captureMode === "mic+system" && (
+            <div className="flex gap-4 bg-gray-50 mb-6 p-4 rounded-lg">
+              <div className="flex items-center gap-2">
+                <Mic
+                  className={`w-4 h-4 ${activeSource === "mic" || activeSource === "both" ? "text-green-500" : "text-gray-300"}`}
+                />
+                <span className="text-secondary text-xs">Microphone</span>
+                <div className="bg-gray-200 rounded-full w-20 h-2 overflow-hidden">
+                  <div
+                    className="bg-green-500 h-full transition-all duration-100"
+                    style={{ width: `${micLevel}%` }}
+                  />
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Monitor
+                  className={`w-4 h-4 ${activeSource === "system" || activeSource === "both" ? "text-blue-500" : "text-gray-300"}`}
+                />
+                <span className="text-secondary text-xs">System Audio</span>
+                <div className="bg-gray-200 rounded-full w-20 h-2 overflow-hidden">
+                  <div
+                    className="bg-blue-500 h-full transition-all duration-100"
+                    style={{ width: `${systemLevel}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Active Source Label - NEW */}
+          {isRecording &&
+            captureMode === "mic+system" &&
+            activeSource !== "none" && (
+              <div className="mb-4 text-sm">
+                <span className="text-accent">Audio from: </span>
+                <span className="font-medium text-primary">
+                  {activeSource === "mic" && "🎤 Microphone"}
+                  {activeSource === "system" && "🖥️ System/Zoom"}
+                  {activeSource === "both" && "🎤 Microphone + 🖥️ System/Zoom"}
+                </span>
+              </div>
+            )}
 
           {/* Recording Controls */}
           {!isRecording ? (
@@ -1151,12 +1555,14 @@ export const RecordSessionPage = () => {
                 onClick={handleStartRecording}
                 disabled={
                   !consent ||
+                  (captureMode === "mic+system" && !systemAudioConsent) ||
                   isStarting ||
                   createSessionMutation.isPending ||
                   startRecordingMutation.isPending
                 }
                 className={`flex items-center gap-2 px-6 ${
-                  !consent
+                  !consent ||
+                  (captureMode === "mic+system" && !systemAudioConsent)
                     ? "bg-gray-300 cursor-not-allowed"
                     : "bg-primary hover:bg-primary/80"
                 } text-white`}
@@ -1166,18 +1572,39 @@ export const RecordSessionPage = () => {
                 startRecordingMutation.isPending ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
-                  <Mic className="w-4 h-4" />
+                  <>
+                    <Mic className="w-4 h-4" />
+                    {captureMode === "mic+system" && (
+                      <Monitor className="w-4 h-4" />
+                    )}
+                  </>
                 )}
                 {isStarting ||
                 createSessionMutation.isPending ||
                 startRecordingMutation.isPending
                   ? "Preparing..."
-                  : "Start Recording"}
+                  : captureMode === "mic+system"
+                    ? "Start Recording (Mic + System)"
+                    : "Start Recording"}
               </Button>
 
               {/* Info Text */}
               <div className="space-y-1 mt-6 text-accent text-sm text-center">
-                <p>Please complete consent checkboxe before starting</p>
+                <p>
+                  Please complete consent checkbox
+                  {captureMode === "mic+system" ? "es" : ""} before starting
+                </p>
+                {captureMode === "mic+system" && (
+                  <p className="font-medium text-primary">
+                    📺 You'll be prompted to select a window/screen to share
+                  </p>
+                )}
+                {/* {enableSpeakerDiarization && (
+                  <p className="font-medium text-purple-600">
+                    👥 Speaker identification enabled (max {maxSpeakers}{" "}
+                    speakers)
+                  </p>
+                )} */}
                 <p>Recording indicator will be visible throughout session</p>
                 <p className="flex justify-center items-center gap-1">
                   <span>🔒</span> Audio will be encrypted and stored in
@@ -1201,7 +1628,6 @@ export const RecordSessionPage = () => {
                   onClick={handlePauseRecording}
                   className="flex items-center gap-2 bg-primary hover:bg-primary/80 px-6 text-white"
                 >
-                  {/* <Pause className="w-4 h-4" /> */}
                   {isPaused ? (
                     <Triangle className="fill-current w-4 h-4" />
                   ) : (
@@ -1230,6 +1656,14 @@ export const RecordSessionPage = () => {
                 </span>
                 <span className="text-primary/50">•</span>
                 <span className="text-primary">File Size: {fileSizeMb}</span>
+                {captureMode === "mic+system" && (
+                  <>
+                    <span className="text-primary/50">•</span>
+                    <span className="font-medium text-blue-600">
+                      🖥️ System Audio Active
+                    </span>
+                  </>
+                )}
               </div>
             </>
           )}
