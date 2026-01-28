@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useEffect, useRef } from "react";
 import WaveSurfer from "wavesurfer.js";
 import RecordPlugin from "wavesurfer.js/dist/plugins/record";
+import fixWebmDuration from "fix-webm-duration";
 // import type RecordPlugin from "wavesurfer.js/dist/plugins/record";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { Card } from "@/components/ui/card";
@@ -499,6 +500,13 @@ export const RecordSessionPage = () => {
             recordedBlobRef.current.size,
             "bytes",
           );
+
+          // Fix WebM duration metadata (browsers don't write it correctly)
+          console.log("[Stop Recording] Fixing WebM duration metadata...");
+          const fixedBlob = await fixWebmDuration(recordedBlobRef.current, durationSeconds * 1000, { logger: false });
+          recordedBlobRef.current = fixedBlob;
+          setRecordedBlob(fixedBlob);
+          console.log("[Stop Recording] WebM duration fixed:", durationSeconds, "seconds");
 
           // NOW close the audio context after blob is ready
           if (
