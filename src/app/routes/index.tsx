@@ -27,6 +27,7 @@ import { UserManagementPage } from "@/modules/admin/usermanagement/UserManagemen
 import { SupervisionManagementPage } from "@/modules/admin/supervision/SupervisionManagementPage";
 import { AdminSettingPage } from "@/modules/admin/settings/AdminSettingPage";
 import { AuditPage } from "@/modules/admin/audit/AuditPage";
+import { AuditPage as PractitionerAuditPage } from "@/modules/practitioner/audit/AuditPage";
 // import AdminCasePageDetails from "@/modules/admin/cases/AdminCasePageDetails";
 import { AdminCaseDetailPage } from "@/modules/admin/cases/AdminCaseDetailPage";
 import { AdminSessionViewPage } from "@/modules/admin/cases/AdminSessionViewPage";
@@ -114,7 +115,7 @@ export function AppRoutes() {
             path="my-cases/:caseId/summary/:summaryId"
             element={<SummaryDetailPage />}
           />
-          {/* <Route path="audit-logs" element={<AuditPage />} /> */}
+          <Route path="audit-logs" element={<PractitionerAuditPage />} />
           <Route path="settings" element={<SettingPage />} />
         </Route>
 

@@ -295,7 +295,7 @@ export const AuditPage = () => {
         </div>
 
         {/* Action Buttons */}
-        <div className="flex justify-end lg:justify-start gap-2 w-full md:w-auto">
+        {/* <div className="flex justify-end lg:justify-start gap-2 w-full md:w-auto">
           <Button
             onClick={handleReset}
             variant="outline"
@@ -313,7 +313,7 @@ export const AuditPage = () => {
             <Download className="w-4 h-4" />
             <span>Export</span>
           </Button>
-        </div>
+        </div> */}
       </div>
 
       {/* Results Summary */}

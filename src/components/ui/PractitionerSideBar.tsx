@@ -15,12 +15,12 @@ const PractitionerSideBar = () => {
       to: "/practitioner/my-cases",
       icon: "class",
     },
-    // {
-    //   key: "audit-logs",
-    //   label: "Audit Logs",
-    //   to: "/practitioner/audit-logs",
-    //   icon: "audit",
-    // },
+    {
+      key: "audit-logs",
+      label: "Audit Logs",
+      to: "/practitioner/audit-logs",
+      icon: "audit",
+    },
     {
       key: "settings",
       label: "Settings",
