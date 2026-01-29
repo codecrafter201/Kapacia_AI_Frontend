@@ -3,10 +3,7 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "react-router-dom";
-import {
-  useSessionById,
-  useSessionAudioUrl,
-} from "@/hooks/useSessions";
+import { useSessionById, useSessionAudioUrl } from "@/hooks/useSessions";
 import { useTranscriptBySession } from "@/hooks/useTranscript";
 import { useSoapNotesBySession } from "@/hooks/useSoap";
 
@@ -218,7 +215,10 @@ export const AdminSessionViewPage = () => {
     };
 
     const resolvedAudioUrl =
-      (presignedAudio as any)?.audio?.url || (presignedAudio as any)?.url || sessionData?.audioUrl || audioUrl;
+      (presignedAudio as any)?.audio?.url ||
+      (presignedAudio as any)?.url ||
+      sessionData?.audioUrl ||
+      audioUrl;
 
     if (audioBlob) {
       try {
@@ -409,7 +409,8 @@ export const AdminSessionViewPage = () => {
       ? formatDuration(sessionData.durationSeconds)
       : "N/A",
     case: sessionData.case
-      ? `${sessionData.case.internalRef} (${sessionData.case.displayName})`
+      ? // ? `${sessionData.case.internalRef} (${sessionData.case.displayName})`
+        `${sessionData.case.displayName}`
       : "N/A",
     language:
       sessionData.language?.charAt(0).toUpperCase() +

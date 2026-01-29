@@ -155,7 +155,8 @@ export const CaseDetailPage = () => {
         <div className="flex sm:flex-row flex-col sm:justify-between sm:items-start gap-4">
           <div className="flex items-center gap-3">
             <h1 className="font-medium text-secondary text-xl sm:text-2xl">
-              {caseInfo.internalRef || "N/A"} - {caseInfo.displayName || "N/A"}
+              {/* {caseInfo.internalRef || "N/A"} - {caseInfo.displayName || "N/A"} */}
+              {caseInfo.displayName || "N/A"}
             </h1>
             <span
               className={`px-3 py-1 rounded-full text-sm ${
@@ -609,9 +610,10 @@ export const CaseDetailPage = () => {
         isOpen={isExportModalOpen}
         onClose={() => setIsExportModalOpen(false)}
         caseId={caseId}
-        caseName={`${caseInfo.internalRef || ""} (${
-          caseInfo.displayName || ""
-        })`}
+        // caseName={`${caseInfo.internalRef || ""} (${
+        //   caseInfo.displayName || ""
+        // })`}
+        caseName={`${caseInfo.displayName || ""}`}
         onExportSuccess={(exportData) => {
           console.log("Export case data:", exportData);
           // Trigger export download

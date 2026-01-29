@@ -189,12 +189,12 @@ const PractitionerDashBoard = () => {
                     <div className="flex sm:flex-row flex-col sm:justify-between sm:items-center gap-4">
                       <div className="flex-1 space-y-1">
                         <div className="flex sm:flex-row flex-col sm:items-center gap-2">
-                          <h3 className="text-secondary text-base">
+                          {/* <h3 className="text-secondary text-base">
                             {caseItem.internalRef}
                           </h3>
                           <span className="hidden sm:inline text-gray-400 text-sm">
                             -
-                          </span>
+                          </span> */}
                           <span className="text-accent text-sm">
                             {caseItem.displayName}
                           </span>
@@ -259,7 +259,8 @@ const PractitionerDashBoard = () => {
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-secondary text-sm sm:text-base">
-                            {session.case?.internalRef || "Session"} — Session{" "}
+                            {session.case?.displayName || "Session"} — Session{" "}
+                            {/* {session.case?.internalRef || "Session"} — Session{" "} */}
                             {session.sessionNumber}
                           </p>
                           <p className="text-accent text-xs">

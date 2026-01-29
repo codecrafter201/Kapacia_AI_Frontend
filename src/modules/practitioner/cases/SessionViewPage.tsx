@@ -380,7 +380,8 @@ export const SessionViewPage = () => {
       ? formatDuration(sessionData.durationSeconds)
       : "N/A",
     case: sessionData.case
-      ? `${sessionData.case.internalRef} (${sessionData.case.displayName})`
+      ? // ? `${sessionData.case.internalRef} (${sessionData.case.displayName})`
+        `${sessionData.case.displayName}`
       : "N/A",
     language:
       sessionData.language?.charAt(0).toUpperCase() +

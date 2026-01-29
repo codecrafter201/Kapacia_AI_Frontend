@@ -128,7 +128,8 @@ export const AdminCaseDetailPage = () => {
         <div className="flex sm:flex-row flex-col sm:justify-between sm:items-start gap-4">
           <div className="flex items-center gap-3">
             <h1 className="font-medium text-secondary text-xl sm:text-2xl">
-              {caseInfo.internalRef || "N/A"} - {caseInfo.displayName || "N/A"}
+              {/* {caseInfo.internalRef || "N/A"} - {caseInfo.displayName || "N/A"} */}
+              {caseInfo.displayName || "N/A"}
             </h1>
             <span
               className={`px-3 py-1 rounded-full text-sm ${
@@ -506,7 +507,8 @@ export const AdminCaseDetailPage = () => {
         onClose={() => setIsUpdateStatusModalOpen(false)}
         caseId={caseId}
         currentStatus={caseInfo.status || "Active"}
-        caseName={`${caseInfo.internalRef || ""} - ${caseInfo.displayName || ""}`}
+        // caseName={`${caseInfo.internalRef || ""} - ${caseInfo.displayName || ""}`}
+        caseName={`${caseInfo.displayName || "N/A"}`}
       />
     </div>
   );
