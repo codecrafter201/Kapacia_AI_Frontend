@@ -137,10 +137,10 @@ export const CasesPage = () => {
                     <div className="flex-1 space-y-2">
                       {/* Case Number and Client Name */}
                       <div className="flex flex-wrap items-center gap-2">
-                        <h3 className="text-secondary text-xl">
+                        {/* <h3 className="text-secondary text-xl">
                           {caseItem.internalRef}
                         </h3>
-                        <span className="text-accent">-</span>
+                        <span className="text-accent">-</span> */}
                         <span className="text-secondary text-base">
                           {caseItem.displayName}
                         </span>
