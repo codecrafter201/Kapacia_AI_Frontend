@@ -185,7 +185,7 @@ export const CaseDetailPage = () => {
               <Mic className="w-4 h-4" />
               Record Session
             </Button>
-            <Button
+            {/* <Button
               onClick={() => setIsUploadModalOpen(true)}
               disabled={caseInfo.status !== "Active"}
               variant="outline"
@@ -198,7 +198,7 @@ export const CaseDetailPage = () => {
             >
               <Upload className="w-4 h-4" />
               Upload File
-            </Button>
+            </Button> */}
             <Button
               onClick={() => setIsExportModalOpen(true)}
               variant="outline"

@@ -52,11 +52,7 @@ export const SessionHeader = ({
             }`}
           >
             {statusColor === "green" && (
-              <svg
-                className="w-3 h-3"
-                fill="currentColor"
-                viewBox="0 0 24 24"
-              >
+              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
               </svg>
             )}
@@ -88,12 +84,12 @@ export const SessionHeader = ({
           )}
           Delete Session
         </Button>
-        <Button
+        {/* <Button
           onClick={onOpenChat}
           className="flex items-center gap-2 bg-[#7657FF] hover:bg-[#5e42cc] text-white"
         >
           Chat
-        </Button>
+        </Button> */}
       </div>
     </Card>
   );

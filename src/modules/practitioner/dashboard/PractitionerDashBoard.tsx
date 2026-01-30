@@ -11,6 +11,16 @@ const PractitionerDashBoard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
+  const getSessionStatusInfo = (status?: string) => {
+    if (status === "Completed" || status === "Approved") {
+      return { label: "Approved", color: "green" };
+    }
+    if (status === "Pending" || status === "Created") {
+      return { label: "Pending Review", color: "orange" };
+    }
+    return { label: status || "Pending", color: "orange" };
+  };
+
   // Dashboard data
   const {
     data: myCasesData,
@@ -272,6 +282,58 @@ const PractitionerDashBoard = () => {
                               : new Date(session.createdAt).toLocaleString()}
                           </p>
                         </div>
+                        <div className="hidden sm:flex items-start">
+                          {(() => {
+                            const statusInfo = getSessionStatusInfo(session?.status);
+                            return (
+                              <Button
+                                onClick={() =>
+                                  navigate(
+                                    `/practitioner/my-cases/${session.case?._id}/session/${session._id}`
+                                  )
+                                }
+                                variant="outline"
+                                size="sm"
+                                className={`flex items-center gap-1 ${
+                                  statusInfo?.color === "orange"
+                                    ? "text-[#F29339] border-[#F29339] bg-[#F2933911] "
+                                    : "text-[#31B8C6] border-[#31B8C6] bg-[#31B8C6]/10 "
+                                }`}
+                              >
+                                {statusInfo?.color === "orange"
+                                  ? "Review & Approve"
+                                  : "View Session"}
+                                <ChevronRight className="w-4 h-4" />
+                              </Button>
+                            );
+                          })()}
+                        </div>
+                      </div>
+                      <div className="mt-3 sm:hidden">
+                        {(() => {
+                          const statusInfo = getSessionStatusInfo(session?.status);
+                          return (
+                            <Button
+                              onClick={() =>
+                                navigate(
+                                  `/practitioner/my-cases/${session.case?._id}/session/${session._id}`
+                                )
+                              }
+                              variant="outline"
+                              size="sm"
+                              className={`flex items-center gap-1 w-full ${
+                                statusInfo?.color === "orange"
+                                  ? "text-[#F29339] border-[#F29339] bg-[#F2933911] "
+                                  : "text-[#31B8C6] border-[#31B8C6] bg-[#31B8C6]/10 "
+                              }`}
+                            >
+                              {statusInfo?.color === "orange"
+                                ? "Review & Approve"
+                                : "View Session"}
+                              <ChevronRight className="w-4 h-4" />
+                            </Button>
+                          );
+                        })()}
                       </div>
                       <div className="my-4 border-accent/10 border-t" />
                     </div>
