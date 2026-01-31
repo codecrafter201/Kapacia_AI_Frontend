@@ -18,6 +18,7 @@ export const AdminSettingPage = () => {
   const [formData, setFormData] = useState({
     name: user?.name || "",
     email: user?.email || "",
+    currentPassword: "",
     password: "",
     confirmPassword: "",
   });
@@ -28,6 +29,7 @@ export const AdminSettingPage = () => {
       setFormData({
         name: user.name || "",
         email: user.email || "",
+        currentPassword: "",
         password: "",
         confirmPassword: "",
       });
@@ -110,12 +112,12 @@ export const AdminSettingPage = () => {
       }
 
       // Update password if provided
-      if (formData.password || formData.confirmPassword) {
-        if (!formData.password || !formData.confirmPassword) {
+      if (formData.currentPassword || formData.password || formData.confirmPassword) {
+        if (!formData.currentPassword || !formData.password || !formData.confirmPassword) {
           Swal.fire({
             icon: "error",
             title: "Validation Error",
-            text: "Both password fields are required if updating password",
+            text: "All password fields are required if updating password",
           });
           return;
         }
@@ -124,7 +126,7 @@ export const AdminSettingPage = () => {
           Swal.fire({
             icon: "error",
             title: "Validation Error",
-            text: "Passwords do not match",
+            text: "New password and confirm password do not match",
           });
           return;
         }
@@ -139,6 +141,7 @@ export const AdminSettingPage = () => {
         }
 
         await updatePasswordMutation.mutateAsync({
+          currentPassword: formData.currentPassword,
           password: formData.password,
           confirmPassword: formData.confirmPassword,
         });
@@ -147,6 +150,7 @@ export const AdminSettingPage = () => {
       // Clear password fields
       setFormData((prev) => ({
         ...prev,
+        currentPassword: "",
         password: "",
         confirmPassword: "",
       }));
@@ -332,12 +336,21 @@ export const AdminSettingPage = () => {
         <div className="space-y-2 w-full max-w-md">
           <Input
             type="password"
+            name="currentPassword"
+            value={formData.currentPassword}
+            onChange={handleInputChange}
+            disabled={!isEditing}
+            className="py-2.5"
+            placeholder="Current password"
+          />
+          <Input
+            type="password"
             name="password"
             value={formData.password}
             onChange={handleInputChange}
             disabled={!isEditing}
             className="py-2.5"
-            placeholder="Enter new password"
+            placeholder="New password"
           />
           <Input
             type="password"

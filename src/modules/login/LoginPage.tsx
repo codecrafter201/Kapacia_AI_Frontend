@@ -25,6 +25,8 @@ function LoginPage() {
         navigate("/dashboard");
       }
     } catch (error) {
+      // Error handling is already done in the useAuth login function
+      // which shows toast messages
       console.error("Login failed:", error);
     }
   };

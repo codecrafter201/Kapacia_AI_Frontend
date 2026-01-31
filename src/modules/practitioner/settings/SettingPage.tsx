@@ -19,7 +19,7 @@ export const SettingPage = () => {
     name: user?.name || "",
     email: user?.email || "",
     currentPassword: "",
-    newPassword: "",
+    password: "",
     confirmPassword: "",
   });
   const [sessionLanguage, setSessionLanguage] = useState(
@@ -36,7 +36,7 @@ export const SettingPage = () => {
         name: user.name || "",
         email: user.email || "",
         currentPassword: "",
-        newPassword: "",
+        password: "",
         confirmPassword: "",
       });
     }
@@ -95,8 +95,8 @@ export const SettingPage = () => {
       }
 
       // Update password if provided
-      if (formData.currentPassword && formData.newPassword) {
-        if (formData.newPassword !== formData.confirmPassword) {
+      if (formData.currentPassword && formData.password) {
+        if (formData.password !== formData.confirmPassword) {
           await Swal.fire({
             title: "Error",
             text: "New password and confirm password do not match",
@@ -107,7 +107,7 @@ export const SettingPage = () => {
           return;
         }
 
-        if (formData.newPassword.length < 6) {
+        if (formData.password.length < 6) {
           await Swal.fire({
             title: "Error",
             text: "Password must be at least 6 characters long",
@@ -120,7 +120,8 @@ export const SettingPage = () => {
 
         const passwordResponse = await updatePassword({
           currentPassword: formData.currentPassword,
-          newPassword: formData.newPassword,
+          password: formData.password,
+          confirmPassword: formData.confirmPassword,
         });
 
         if (passwordResponse && passwordResponse.success) {
@@ -150,7 +151,7 @@ export const SettingPage = () => {
         // Clear password fields after successful save
         setFormData({
           ...formData,
-          currentPassword: "",
+          pentPassword: "",
           newPassword: "",
           confirmPassword: "",
         });
@@ -158,7 +159,7 @@ export const SettingPage = () => {
         setIsEditing(false);
       } else if (
         !profileUpdated &&
-        !passwordUpdated &&
+        !passwordUpdated &&p
         (formData.currentPassword || formData.newPassword)
       ) {
         // Only show error if password fields were filled but update failed
@@ -360,8 +361,8 @@ export const SettingPage = () => {
           />
           <Input
             type="password"
-            name="newPassword"
-            value={formData.newPassword}
+            name="password"
+            value={formData.password}
             onChange={handleInputChange}
             disabled={!isEditing}
             className="py-2.5"
