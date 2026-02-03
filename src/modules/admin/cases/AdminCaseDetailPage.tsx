@@ -205,6 +205,13 @@ export const AdminCaseDetailPage = () => {
         </Card>
       </div>
 
+      <Card className="p-6">
+        <h2 className="text-secondary text-xl">Remarks</h2>
+        <p className="mt-2 text-accent text-sm whitespace-pre-wrap">
+          {caseInfo.remarks?.trim() ? caseInfo.remarks : "No remarks"}
+        </p>
+      </Card>
+
       {/* Case Summary */}
       <Card className="bg-primary/5 p-6">
         <h2 className="text-secondary text-2xl">Case Summary</h2>
@@ -509,6 +516,8 @@ export const AdminCaseDetailPage = () => {
         currentStatus={caseInfo.status || "Active"}
         // caseName={`${caseInfo.internalRef || ""} - ${caseInfo.displayName || ""}`}
         caseName={`${caseInfo.displayName || "N/A"}`}
+        currentTags={caseInfo.tags || []}
+        currentRemarks={caseInfo.remarks || ""}
       />
     </div>
   );

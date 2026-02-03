@@ -142,7 +142,7 @@ export const ExportCaseModal = ({
                   Full Case ( all session, files, summaries )
                 </span>
               </label>
-              <label className="flex items-center gap-2 cursor-pointer">
+              {/* <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="radio"
                   checked={exportType === "single-sessions"}
@@ -170,12 +170,12 @@ export const ExportCaseModal = ({
                   className="w-4 h-4 text-blue-600"
                 />
                 <span className="text-gray-700 text-sm">Custom Selection</span>
-              </label>
+              </label> */}
             </div>
           </div>
 
           {/* Content to Include */}
-          <div className="p-4 border border-border rounded-lg">
+          {/* <div className="p-4 border border-border rounded-lg">
             <h3 className="mb-3 text-primary text-sm">CONTENT TO INCLUDE</h3>
             <div className="space-y-2">
               <label className="flex items-center gap-2 cursor-pointer">
@@ -254,7 +254,7 @@ export const ExportCaseModal = ({
                 </span>
               </label>
             </div>
-          </div>
+          </div> */}
 
           {/* Date Range */}
           <div className="p-4 border border-border rounded-lg">
@@ -284,7 +284,7 @@ export const ExportCaseModal = ({
           <div className="p-4 border border-border rounded-lg">
             <h3 className="mb-3 text-primary text-sm">EXPORT FORMAT</h3>
             <div className="space-y-2">
-              <label className="flex items-center gap-2 cursor-pointer">
+              {/* <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="radio"
                   checked={exportFormat === "pdf"}
@@ -292,7 +292,7 @@ export const ExportCaseModal = ({
                   className="w-4 h-4 text-primary"
                 />
                 <span className="text-secondary text-sm">PDF Report</span>
-              </label>
+              </label> */}
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="radio"

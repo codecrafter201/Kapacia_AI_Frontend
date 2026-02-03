@@ -5,6 +5,7 @@ import { ChevronLeft, Download, Delete, Loader2 } from "lucide-react";
 interface SessionHeaderProps {
   sessionNumber: string;
   date: string;
+  sessionName: string;
   caseId: string;
   caseName: string;
   statusLabel: string;
@@ -19,6 +20,7 @@ interface SessionHeaderProps {
 export const SessionHeader = ({
   sessionNumber,
   date,
+  sessionName,
   caseId,
   caseName,
   statusLabel,
@@ -42,7 +44,7 @@ export const SessionHeader = ({
 
         <div className="flex items-center">
           <h1 className="font-medium text-secondary text-xl sm:text-2xl">
-            Session {sessionNumber} - {date}
+            Session {sessionNumber} - {date} {sessionName && `(${sessionName})`}
           </h1>
           <span
             className={`ml-1 px-3 py-1 rounded-full text-sm font-medium flex items-center gap-1 ${
@@ -52,11 +54,7 @@ export const SessionHeader = ({
             }`}
           >
             {statusColor === "green" && (
-              <svg
-                className="w-3 h-3"
-                fill="currentColor"
-                viewBox="0 0 24 24"
-              >
+              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
               </svg>
             )}
@@ -88,12 +86,12 @@ export const SessionHeader = ({
           )}
           Delete Session
         </Button>
-        <Button
+        {/* <Button
           onClick={onOpenChat}
           className="flex items-center gap-2 bg-[#7657FF] hover:bg-[#5e42cc] text-white"
         >
           Chat
-        </Button>
+        </Button> */}
       </div>
     </Card>
   );

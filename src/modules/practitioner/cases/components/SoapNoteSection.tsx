@@ -7,6 +7,7 @@ interface SoapNoteData {
   objective: string;
   assessment: string;
   plan: string;
+  summary?: string;
 }
 
 interface LatestSoapNote {
@@ -20,6 +21,7 @@ interface LatestSoapNote {
     objective: string;
     assessment: string;
     plan: string;
+    summary?: string;
   };
   contentText?: string;
 }
@@ -44,7 +46,7 @@ export const SoapNoteSection = ({
       <div className="flex sm:flex-row flex-col sm:justify-between sm:items-center gap-3 mb-4">
         <div>
           <h2 className="text-secondary text-lg sm:text-2xl">
-            SOAP Note Draft - Version {latestSoapNote?.version || "1"}
+            Session Summary Draft - Version {latestSoapNote?.version || "1"}
           </h2>
           <p className="text-accent text-sm">
             {latestSoapNote ? (
@@ -61,7 +63,8 @@ export const SoapNoteSection = ({
                   },
                 )}{" "}
                 <span className="ml-1 px-3 py-1 rounded-full bg-ring/10 text-ring text-sm">
-                  ({latestSoapNote.generatedBy}) • Status: {latestSoapNote.status}
+                  ({latestSoapNote.generatedBy}) • Status:{" "}
+                  {latestSoapNote.status}
                 </span>
               </>
             ) : (
@@ -92,15 +95,13 @@ export const SoapNoteSection = ({
         </div>
       ) : (
         <div className="space-y-4">
-          {/* Subjective */}
-          <div>
+          {/* <div>
             <h3 className="mb-2 text-md text-primary">S (Subjective):</h3>
             <p className="text-accent text-sm leading-relaxed">
               {soapNoteData.subjective}
             </p>
           </div>
 
-          {/* Objective */}
           <div>
             <h3 className="mb-2 text-md text-primary">O (Objective):</h3>
             <p className="text-accent text-sm leading-relaxed">
@@ -108,7 +109,6 @@ export const SoapNoteSection = ({
             </p>
           </div>
 
-          {/* Assessment */}
           <div>
             <h3 className="mb-2 text-md text-primary">A (Assessment):</h3>
             <p className="text-accent text-sm leading-relaxed">
@@ -116,13 +116,24 @@ export const SoapNoteSection = ({
             </p>
           </div>
 
-          {/* Plan */}
           <div>
             <h3 className="mb-2 text-md text-primary">P (Plan):</h3>
             <div className="text-accent text-sm leading-relaxed whitespace-pre-wrap">
               {soapNoteData.plan}
             </div>
-          </div>
+          </div> */}
+
+          {/* Summary */}
+          {soapNoteData.summary && (
+            <div className="bg-primary/5 p-4 border border-primary/20 rounded-lg">
+              <h3 className="mb-2 font-semibold text-md text-primary">
+                Summary:
+              </h3>
+              <div className="text-accent text-sm leading-relaxed whitespace-pre-wrap">
+                {soapNoteData.summary}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </Card>

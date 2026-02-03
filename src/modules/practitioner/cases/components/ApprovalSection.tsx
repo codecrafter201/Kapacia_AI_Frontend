@@ -26,11 +26,20 @@ export const ApprovalSection = ({
       </p>
 
       <div className="space-y-3 mb-6">
-        <label className="flex items-start gap-3 cursor-pointer">
+        <label
+          className={`flex items-start gap-3 ${
+            isSessionApproved ? "cursor-not-allowed opacity-70" : "cursor-pointer"
+          }`}
+        >
           <input
             type="checkbox"
-            checked={isApprovalConfirmed}
-            onChange={() => onApprovalChange(!isApprovalConfirmed)}
+            checked={isSessionApproved || isApprovalConfirmed}
+            disabled={isSessionApproved}
+            onChange={() => {
+              if (!isSessionApproved) {
+                onApprovalChange(!isApprovalConfirmed);
+              }
+            }}
             className="mt-1 rounded-full focus:ring-2 focus:ring-primary w-4 h-4 text-primary shrink-0"
           />
           <div className="text-secondary text-sm">

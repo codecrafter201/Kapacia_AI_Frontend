@@ -295,15 +295,15 @@ export const AuditPage = () => {
         </div>
 
         {/* Action Buttons */}
-        {/* <div className="flex justify-end lg:justify-start gap-2 w-full md:w-auto">
-          <Button
+        <div className="flex justify-end lg:justify-start gap-2 w-full md:w-auto">
+          {/* <Button
             onClick={handleReset}
             variant="outline"
             className="flex flex-1 md:flex-none justify-center items-center gap-2"
           >
             <RotateCcw className="w-4 h-4" />
             <span>Reset</span>
-          </Button>
+          </Button> */}
           <Button
             onClick={handleExport}
             disabled={isLoading || auditEntries.length === 0}
@@ -313,7 +313,7 @@ export const AuditPage = () => {
             <Download className="w-4 h-4" />
             <span>Export</span>
           </Button>
-        </div> */}
+        </div>
       </div>
 
       {/* Results Summary */}

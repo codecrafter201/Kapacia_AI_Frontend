@@ -19,13 +19,25 @@ export const SettingPage = () => {
     name: user?.name || "",
     email: user?.email || "",
     currentPassword: "",
-    newPassword: "",
+    password: "",
     confirmPassword: "",
   });
   const [sessionLanguage, setSessionLanguage] = useState(
     user?.language || "english",
   );
   const [piiMasking, setPiiMasking] = useState(user?.piiMasking !== false);
+
+  const [useMasterPrompt, setUseMasterPrompt] = useState(
+    !user?.customSoapPrompt || user?.customSoapPrompt === "",
+  );
+  const [customPrompt, setCustomPrompt] = useState(
+    user?.customSoapPrompt || "",
+  );
+
+  // Get admin's master prompt from user context (supervisor)
+  const masterPrompt =
+    user?.supervisor?.masterSoapPrompt ||
+    "Please provide a concise summary of the patient's overall condition, key concerns, and recommended actions based on the SOAP note above.";
 
   // Update local state when user data changes
   useEffect(() => {
@@ -36,9 +48,13 @@ export const SettingPage = () => {
         name: user.name || "",
         email: user.email || "",
         currentPassword: "",
-        newPassword: "",
+        password: "",
         confirmPassword: "",
       });
+      setUseMasterPrompt(
+        !user?.customSoapPrompt || user?.customSoapPrompt === "",
+      );
+      setCustomPrompt(user?.customSoapPrompt || "");
     }
   }, [user]);
 
@@ -71,6 +87,13 @@ export const SettingPage = () => {
         hasProfileChanges = true;
       }
 
+      // Handle custom prompt changes
+      const newCustomPrompt = useMasterPrompt ? "" : customPrompt;
+      if (newCustomPrompt !== (user?.customSoapPrompt || "")) {
+        profileData.customSoapPrompt = newCustomPrompt;
+        hasProfileChanges = true;
+      }
+
       // Validate: PII Masking can only be enabled with English
       if (
         profileData.piiMasking === true &&
@@ -87,7 +110,8 @@ export const SettingPage = () => {
         if (profileResponse && profileResponse.data) {
           profileUpdated = true;
           // Update user context with the complete updated user from backend
-          const updatedUserData = profileResponse.data.user || profileResponse.data.userData;
+          const updatedUserData =
+            profileResponse.data.user || profileResponse.data.userData;
           if (updatedUserData) {
             setUser(updatedUserData);
           }
@@ -95,8 +119,8 @@ export const SettingPage = () => {
       }
 
       // Update password if provided
-      if (formData.currentPassword && formData.newPassword) {
-        if (formData.newPassword !== formData.confirmPassword) {
+      if (formData.currentPassword && formData.password) {
+        if (formData.password !== formData.confirmPassword) {
           await Swal.fire({
             title: "Error",
             text: "New password and confirm password do not match",
@@ -107,7 +131,7 @@ export const SettingPage = () => {
           return;
         }
 
-        if (formData.newPassword.length < 6) {
+        if (formData.password.length < 6) {
           await Swal.fire({
             title: "Error",
             text: "Password must be at least 6 characters long",
@@ -120,7 +144,8 @@ export const SettingPage = () => {
 
         const passwordResponse = await updatePassword({
           currentPassword: formData.currentPassword,
-          newPassword: formData.newPassword,
+          password: formData.password,
+          confirmPassword: formData.confirmPassword,
         });
 
         if (passwordResponse && passwordResponse.success) {
@@ -150,7 +175,7 @@ export const SettingPage = () => {
         // Clear password fields after successful save
         setFormData({
           ...formData,
-          currentPassword: "",
+          pentPassword: "",
           newPassword: "",
           confirmPassword: "",
         });
@@ -360,8 +385,8 @@ export const SettingPage = () => {
           />
           <Input
             type="password"
-            name="newPassword"
-            value={formData.newPassword}
+            name="password"
+            value={formData.password}
             onChange={handleInputChange}
             disabled={!isEditing}
             className="py-2.5"
@@ -472,6 +497,107 @@ export const SettingPage = () => {
             <span className="text-secondary text-sm">Off</span>
           </label>
         </div>
+      </Card>
+
+      {/* SOAP Summary Prompt Configuration */}
+      <Card className="p-6">
+        <div className="flex items-start gap-2 mb-4">
+          <h2 className="font-medium text-secondary text-sm">
+            Prompt for Note Summary
+          </h2>
+          <div className="group relative">
+            <HelpCircle className="w-4 h-4 text-gray-400 cursor-help" />
+            <div className="-top-2 left-6 z-10 absolute bg-gray-800 opacity-0 group-hover:opacity-100 shadow-lg px-3 py-2 rounded-md w-64 text-white text-xs transition-opacity">
+              This prompt is used by AI to generate summaries for your SOAP
+              notes. You can use the master prompt set by your admin or
+              customize your own.
+            </div>
+          </div>
+        </div>
+        <p className="mb-4 text-accent text-sm">
+          Configure how AI generates summaries for your SOAP notes. You can
+          either use the master prompt or customize your own.
+        </p>
+
+        {/* Toggle between master and custom */}
+        <div className="space-y-4 mb-4">
+          <label
+            className={`flex items-start gap-3 p-3 border rounded-lg transition-colors ${
+              useMasterPrompt
+                ? "border-primary bg-primary/5"
+                : "border-gray-200 hover:border-gray-300"
+            } ${!isEditing ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+          >
+            <input
+              type="radio"
+              name="promptType"
+              checked={useMasterPrompt}
+              onChange={() => setUseMasterPrompt(true)}
+              disabled={!isEditing}
+              className="mt-1 focus:ring-2 focus:ring-primary w-4 h-4 text-primary"
+            />
+            <div className="flex-1">
+              <div className="font-medium text-secondary text-sm">
+                Use Master Prompt (by Admin)
+              </div>
+              <div className="mt-1 text-accent text-xs">
+                The default prompt configured by your administrator
+              </div>
+            </div>
+          </label>
+
+          <label
+            className={`flex items-start gap-3 p-3 border rounded-lg transition-colors ${
+              !useMasterPrompt
+                ? "border-primary bg-primary/5"
+                : "border-gray-200 hover:border-gray-300"
+            } ${!isEditing ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+          >
+            <input
+              type="radio"
+              name="promptType"
+              checked={!useMasterPrompt}
+              onChange={() => setUseMasterPrompt(false)}
+              disabled={!isEditing}
+              className="mt-1 focus:ring-2 focus:ring-primary w-4 h-4 text-primary"
+            />
+            <div className="flex-1">
+              <div className="font-medium text-secondary text-sm">
+                Use Custom Prompt
+              </div>
+              <div className="mt-1 text-accent text-xs">
+                Customize the prompt to fit your specific needs
+              </div>
+            </div>
+          </label>
+        </div>
+
+        {/* Show master prompt as reference when using it */}
+        {useMasterPrompt && (
+          <div className="bg-gray-50 mb-4 p-3 border border-gray-200 rounded-md">
+            <p className="mb-2 font-medium text-gray-600 text-xs">
+              Current Master Prompt:
+            </p>
+            <p className="text-secondary text-sm italic">{masterPrompt}</p>
+          </div>
+        )}
+
+        {/* Custom prompt input */}
+        {!useMasterPrompt && (
+          <div>
+            <textarea
+              value={customPrompt}
+              onChange={(e) => setCustomPrompt(e.target.value)}
+              disabled={!isEditing}
+              placeholder="Enter your custom prompt for SOAP summary generation..."
+              rows={4}
+              className="disabled:opacity-50 px-3 py-2 border border-input rounded-md focus:ring-2 focus:ring-primary w-full text-sm resize-none disabled:cursor-not-allowed"
+            />
+            <p className="mt-2 text-gray-500 text-xs">
+              Your custom prompt will override the master prompt set by admin.
+            </p>
+          </div>
+        )}
       </Card>
     </div>
   );

@@ -4,6 +4,7 @@ export interface SoapContent {
   objective: string;
   assessment: string;
   plan: string;
+  summary?: string;
 }
 
 export interface SoapNote {

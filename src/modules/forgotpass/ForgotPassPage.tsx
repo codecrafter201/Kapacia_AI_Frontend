@@ -26,9 +26,12 @@ function ForgotPassPage() {
       toast.success(response.message || "OTP has been sent to your email.");
       // Navigate to OTP verification page with email in state (not URL for security)
       navigate("/otp-verify", { state: { email }, replace: true });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Forgot password failed:", error);
-      const message = error instanceof Error ? error.message : "Failed to send reset code. Please try again.";
+      const message =
+        error?.message ||
+        error?.data?.message ||
+        "Failed to send reset code. Please try again.";
       toast.error(message);
     } finally {
       setIsLoading(false);

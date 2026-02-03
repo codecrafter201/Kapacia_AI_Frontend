@@ -321,7 +321,7 @@ const AdminDashBoardPage = () => {
           </div>
 
           {/* Recent Sessions */}
-          <div>
+          {/* <div>
             <h2 className="mb-4 font-normal text-secondary text-lg sm:text-2xl">
               System Alerts
             </h2>
@@ -359,7 +359,6 @@ const AdminDashBoardPage = () => {
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-secondary text-sm sm:text-base">
-                            {/* {session.case?.internalRef || "System Alert"} — */}
                             {session.case?.displayName || "System Alert"} —
                             Alert {session.sessionNumber}
                           </p>
@@ -378,7 +377,7 @@ const AdminDashBoardPage = () => {
                   ))}
               </div>
             </Card>
-          </div>
+          </div> */}
         </>
       )}
     </div>

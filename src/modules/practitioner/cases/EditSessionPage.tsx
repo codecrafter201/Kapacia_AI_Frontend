@@ -47,6 +47,7 @@ export const EditSessionPage = () => {
     objective: "Objective information not yet available",
     assessment: "Assessment not yet available",
     plan: "Treatment plan not yet available",
+    summary: "",
   });
 
   const [hasEdits, setHasEdits] = useState({
@@ -54,6 +55,7 @@ export const EditSessionPage = () => {
     objective: false,
     assessment: false,
     plan: false,
+    summary: false,
   });
 
   const [showTranscript, setShowTranscript] = useState(false);
@@ -85,6 +87,7 @@ export const EditSessionPage = () => {
         objective: parsedContent.objective || "",
         assessment: parsedContent.assessment || "",
         plan: parsedContent.plan || "",
+        summary: parsedContent.summary || "",
       });
     }
   }, [latestSoapNote]);
@@ -97,6 +100,7 @@ export const EditSessionPage = () => {
       objective: "",
       assessment: "",
       plan: "",
+      summary: "",
     };
 
     let currentSection = "";
@@ -118,6 +122,10 @@ export const EditSessionPage = () => {
         if (currentSection) result[currentSection] = currentText.trim();
         currentSection = "plan";
         currentText = "";
+      } else if (line.includes("Summary:") || line.includes("SUMMARY:")) {
+        if (currentSection) result[currentSection] = currentText.trim();
+        currentSection = "summary";
+        currentText = "";
       } else if (currentSection) {
         currentText += (currentText ? "\n" : "") + line;
       }
@@ -138,14 +146,24 @@ export const EditSessionPage = () => {
     try {
       // If no existing SOAP note, create a new one
       if (!latestSoapNote?._id) {
+        let transcriptTextForSoap = "";
+        if (transcriptData?.segments && transcriptData.segments.length > 0) {
+          transcriptTextForSoap = transcriptData.segments
+            .map((seg: any) => seg.text)
+            .join("\n");
+        } else if (transcriptData?.rawText) {
+          transcriptTextForSoap = transcriptData.rawText;
+        }
+
         await generateSoapNoteMutation.mutateAsync({
           sessionId: sessionId!,
-          transcriptText: formatContentText(soapNote),
+          transcriptText: transcriptTextForSoap || undefined,
           manualContent: {
             subjective: soapNote.subjective,
             objective: soapNote.objective,
             assessment: soapNote.assessment,
             plan: soapNote.plan,
+            summary: soapNote.summary,
           },
         });
       } else {
@@ -158,6 +176,7 @@ export const EditSessionPage = () => {
               objective: soapNote.objective,
               assessment: soapNote.assessment,
               plan: soapNote.plan,
+              summary: soapNote.summary,
             },
             contentText: formatContentText(soapNote),
             status: "Draft",
@@ -221,6 +240,7 @@ export const EditSessionPage = () => {
       { label: "O (Objective)", value: content.objective },
       { label: "A (Assessment)", value: content.assessment },
       { label: "P (Plan)", value: content.plan },
+      { label: "Summary", value: content.summary },
     ];
 
     return sections
@@ -399,13 +419,41 @@ export const EditSessionPage = () => {
               </p>
             )}
 
-            <div className="flex items-center bg-[#F2933911] mt-3 mr-auto p-2 rounded-lg text-[#F29339] text-sm">
-              <span className="">⚠</span>
-              <p className="ml-1 text-xs">
-                {latestSoapNote
-                  ? "Editing will create a new version. Previous versions are preserved."
-                  : "You can manually create a SOAP note or use AI to generate one from the transcript."}
-              </p>
+            <div className="flex sm:flex-row flex-col sm:items-center gap-2 mt-3">
+              <div className="flex items-center bg-[#F2933911] p-2 rounded-lg text-[#F29339] text-sm">
+                <span className="">⚠</span>
+                <p className="ml-1 text-xs">
+                  {latestSoapNote
+                    ? "Editing will create a new version. Previous versions are preserved."
+                    : "You can manually create a SOAP note or use AI to generate one from the transcript."}
+                </p>
+              </div>
+
+              {latestSoapNote?.status === "Approved" ? (
+                <div className="flex items-center bg-red-50 p-2 border border-red-200 rounded-lg text-red-600 text-sm">
+                  <span className="">🔒</span>
+                  <p className="ml-1 text-xs">
+                    This note is approved and locked. You cannot make changes
+                    now.
+                  </p>
+                </div>
+              ) : !latestSoapNote ? (
+                <div className="flex items-center bg-blue-50 p-2 border border-blue-200 rounded-lg text-blue-600 text-sm">
+                  <span className="">💡</span>
+                  <p className="ml-1 text-xs">
+                    You can edit the placeholder text above and use "Regenerate
+                    with AI" to create an AI-generated SOAP note.
+                  </p>
+                </div>
+              ) : (
+                <div className="flex items-center bg-[#F2933911] p-2 rounded-lg text-[#F29339] text-sm">
+                  <span className="">⚠</span>
+                  <p className="ml-1 text-xs">
+                    Note: Saving will update the current version. You can
+                    approve after saving.
+                  </p>
+                </div>
+              )}
             </div>
           </Card>
 
@@ -500,8 +548,7 @@ export const EditSessionPage = () => {
             </Card>
           )}
 
-          {/* S (SUBJECTIVE) */}
-          <Card className="p-6 border border-primary/20">
+          {/* <Card className="p-6 border border-primary/20">
             <div className="flex justify-between items-start mb-3">
               <h2 className="text-secondary text-lg sm:text-2xl">
                 S (SUBJECTIVE){" "}
@@ -527,7 +574,6 @@ export const EditSessionPage = () => {
             </p>
           </Card>
 
-          {/* O (OBJECTIVE) */}
           <Card className="p-6 border border-primary/20">
             <div className="flex justify-between items-start mb-3">
               <h2 className="text-secondary text-lg sm:text-2xl">
@@ -552,19 +598,8 @@ export const EditSessionPage = () => {
             <p className="mt-2 text-accent text-xs">
               Characters: {soapNote.objective.length} / {MAX_CHARS}
             </p>
-
-            {/* {hasEdits.objective && latestSoapNote?.status !== "Approved" && (
-              <div className="flex items-start gap-2 text-xs">
-                <Lightbulb className="w-4 h-4 text-[#1D00FF]" />
-                <p className="text-accent">
-                  AI originally suggested: "Generalized Anxiety Disorder" You
-                  changed this to: "Adjustment Disorder"
-                </p>
-              </div>
-            )} */}
           </Card>
 
-          {/* A (ASSESSMENT) */}
           <Card className="p-6 border border-primary/20">
             <div className="flex justify-between items-start mb-3">
               <h2 className="text-secondary text-lg sm:text-2xl">
@@ -591,7 +626,6 @@ export const EditSessionPage = () => {
             </p>
           </Card>
 
-          {/* P (PLAN) */}
           <Card className="p-6 border border-primary/20">
             <div className="flex justify-between items-start mb-3">
               <h2 className="text-secondary text-lg sm:text-2xl">
@@ -615,6 +649,34 @@ export const EditSessionPage = () => {
             />
             <p className="mt-2 text-accent text-xs">
               Characters: {soapNote.plan.length} / {MAX_CHARS}
+            </p>
+          </Card> */}
+
+          {/* SUMMARY SECTION */}
+          <Card className="p-6 border border-primary/20">
+            <div className="flex justify-between items-center mb-3">
+              <h2 className="flex flex-col gap-1 font-bold text-secondary text-lg sm:text-2xl">
+                SUMMARY
+                <span className="text-accent text-sm">
+                  - Overall summary of the session
+                </span>
+              </h2>
+              {hasEdits.summary && (
+                <span className="px-2 py-1 rounded text-[#F29339] text-sm">
+                  ⚠ EDITED
+                </span>
+              )}
+            </div>
+
+            <textarea
+              disabled={latestSoapNote?.status === "Approved"}
+              value={soapNote.summary}
+              onChange={(e) => handleChange("summary", e.target.value)}
+              placeholder="AI-generated summary will appear here..."
+              className="bg-primary/5 disabled:opacity-60 px-3 py-2 border border-primary/20 focus:border-primary/40 rounded-lg outline-none focus:ring-2 focus:ring-blue-200 w-full min-h-30 text-secondary text-sm disabled:cursor-not-allowed"
+            />
+            <p className="mt-2 text-accent text-xs">
+              Characters: {soapNote.summary.length} / {MAX_CHARS}
             </p>
           </Card>
 
@@ -688,30 +750,6 @@ export const EditSessionPage = () => {
           </div>
 
           {/* Bottom Note */}
-          {latestSoapNote?.status === "Approved" ? (
-            <div className="flex items-center bg-red-50 ml-auto p-2 border border-red-200 rounded-lg text-red-600 text-sm">
-              <span className="">🔒</span>
-              <p className="ml-1 text-xs">
-                This note is approved and locked. You cannot make changes now.
-              </p>
-            </div>
-          ) : !latestSoapNote ? (
-            <div className="flex items-center bg-blue-50 ml-auto p-2 border border-blue-200 rounded-lg text-blue-600 text-sm">
-              <span className="">💡</span>
-              <p className="ml-1 text-xs">
-                You can edit the placeholder text above and use "Regenerate with
-                AI" to create an AI-generated SOAP note.
-              </p>
-            </div>
-          ) : (
-            <div className="flex items-center bg-[#F2933911] ml-auto p-2 rounded-lg text-[#F29339] text-sm">
-              <span className="">⚠</span>
-              <p className="ml-1 text-xs">
-                Note: Saving will update the current version. You can approve
-                after saving.
-              </p>
-            </div>
-          )}
         </>
       )}
     </div>
