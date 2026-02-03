@@ -63,6 +63,8 @@ export const getCaseTimeline = function (caseId, params = {}) {
   if (params.eventType) queryParams.append("eventType", params.eventType);
   if (params.sessionStatus)
     queryParams.append("sessionStatus", params.sessionStatus);
+  if (params.sessionNameSearch)
+    queryParams.append("sessionNameSearch", params.sessionNameSearch);
   if (params.startDate) queryParams.append("startDate", params.startDate);
   if (params.endDate) queryParams.append("endDate", params.endDate);
   if (params.allEntries) queryParams.append("allEntries", "true");

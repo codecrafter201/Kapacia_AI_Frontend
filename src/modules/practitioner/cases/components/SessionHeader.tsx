@@ -5,6 +5,7 @@ import { ChevronLeft, Download, Delete, Loader2 } from "lucide-react";
 interface SessionHeaderProps {
   sessionNumber: string;
   date: string;
+  sessionName: string;
   caseId: string;
   caseName: string;
   statusLabel: string;
@@ -19,6 +20,7 @@ interface SessionHeaderProps {
 export const SessionHeader = ({
   sessionNumber,
   date,
+  sessionName,
   caseId,
   caseName,
   statusLabel,
@@ -42,7 +44,7 @@ export const SessionHeader = ({
 
         <div className="flex items-center">
           <h1 className="font-medium text-secondary text-xl sm:text-2xl">
-            Session {sessionNumber} - {date}
+            Session {sessionNumber} - {date} {sessionName && `(${sessionName})`}
           </h1>
           <span
             className={`ml-1 px-3 py-1 rounded-full text-sm font-medium flex items-center gap-1 ${

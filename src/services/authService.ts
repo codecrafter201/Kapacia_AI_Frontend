@@ -150,21 +150,28 @@ export const forgotPassword = async (
     console.error("Forgot password API error:", error);
 
     if (axios.isAxiosError(error)) {
-      const axiosError = error as AxiosError<BackendErrorResponse>;
+      const axiosError = error as AxiosError<any>;
+      const errorData = axiosError.response?.data;
 
-      if (axiosError.response?.data?.error) {
-        throw new Error(axiosError.response.data.error);
+      // Try multiple error extraction strategies
+      let errorMessage = "Failed to send reset code. Please try again.";
+
+      if (errorData) {
+        // Strategy 1: Check for direct message field
+        if (errorData.message) {
+          errorMessage = errorData.message;
+        }
+        // Strategy 2: Check for error.message (nested error object)
+        else if (errorData.error?.message) {
+          errorMessage = errorData.error.message;
+        }
+        // Strategy 3: Check for error string
+        else if (typeof errorData.error === "string") {
+          errorMessage = errorData.error;
+        }
       }
 
-      if (axiosError.response) {
-        throw new Error(`Request failed: ${axiosError.response.status}`);
-      }
-
-      if (axiosError.request) {
-        throw new Error(
-          "No response from server. Please check your connection."
-        );
-      }
+      throw new Error(errorMessage);
     }
 
     const message =

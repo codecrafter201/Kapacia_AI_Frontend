@@ -42,6 +42,7 @@ export const CreateCaseModal = ({
   onCreateSuccess,
 }: CreateCaseModalProps) => {
   const [caseName, setCaseName] = useState("");
+  const [remarks, setRemarks] = useState("");
   const [assignedPractitioner, setAssignedPractitioner] = useState("");
   const [status, setStatus] = useState("Active");
   const [tags, setTags] = useState<string[]>([]);
@@ -109,6 +110,7 @@ export const CreateCaseModal = ({
         assignedTo: assignedPractitioner,
         tags: tags,
         status: status,
+        remarks: remarks.trim(),
       });
 
       toast.success("Case created successfully!");
@@ -124,6 +126,7 @@ export const CreateCaseModal = ({
 
       // Reset form
       setCaseName("");
+      setRemarks("");
       setAssignedPractitioner("");
       setStatus("Active");
       setTags([]);
@@ -165,6 +168,17 @@ export const CreateCaseModal = ({
               className="bg-primary/5 border-0 w-full text-accent text-sm"
             />
             {/* </div> */}
+          </div>
+
+          <div className="p-4 border border-border rounded-lg">
+            <label className="block mb-3 text-primary text-sm">Remarks</label>
+            <textarea
+              value={remarks}
+              onChange={(e) => setRemarks(e.target.value)}
+              placeholder="Add remarks"
+              rows={3}
+              className="bg-primary/5 px-3 py-2 border-0 rounded-lg w-full text-accent text-sm resize-none"
+            />
           </div>
 
           {/* Assign Practitioner */}

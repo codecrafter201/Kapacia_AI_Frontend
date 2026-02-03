@@ -15,6 +15,7 @@ export const SelfCreateCaseModal = ({
   onClose,
 }: SelfCreateCaseModalProps) => {
   const [caseName, setCaseName] = useState("");
+  const [remarks, setRemarks] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
 
@@ -42,10 +43,12 @@ export const SelfCreateCaseModal = ({
       await createSelfCase.mutateAsync({
         displayName: caseName.trim(),
         tags,
+        remarks: remarks.trim(),
       });
 
       toast.success("Case created and assigned to you");
       setCaseName("");
+      setRemarks("");
       setTags([]);
       setTagInput("");
       onClose();
@@ -85,6 +88,17 @@ export const SelfCreateCaseModal = ({
               onChange={(e) => setCaseName(e.target.value)}
               placeholder="e.g. John Doe - CBT"
               className="bg-primary/5 border-0"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-primary text-sm">Remarks</label>
+            <textarea
+              value={remarks}
+              onChange={(e) => setRemarks(e.target.value)}
+              placeholder="Add remarks"
+              rows={3}
+              className="bg-primary/5 px-3 py-2 border-0 rounded-md w-full text-accent text-sm resize-none"
             />
           </div>
 

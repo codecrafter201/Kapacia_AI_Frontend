@@ -10,6 +10,8 @@ interface UpdateCaseStatusModalProps {
   caseId: string | undefined;
   currentStatus: string;
   caseName: string;
+  currentTags?: string[];
+  currentRemarks?: string;
 }
 
 export const UpdateCaseStatusModal = ({
@@ -18,8 +20,13 @@ export const UpdateCaseStatusModal = ({
   caseId,
   currentStatus,
   caseName,
+  currentTags = [],
+  currentRemarks = "",
 }: UpdateCaseStatusModalProps) => {
   const [selectedStatus, setSelectedStatus] = useState(currentStatus);
+  const [updatedName, setUpdatedName] = useState(caseName);
+  const [tagsInput, setTagsInput] = useState(currentTags.join(", "));
+  const [remarks, setRemarks] = useState(currentRemarks);
   const updateCaseMutation = useUpdateCase();
 
   if (!isOpen) return null;
@@ -36,11 +43,22 @@ export const UpdateCaseStatusModal = ({
       return;
     }
 
-    if (selectedStatus === currentStatus) {
+    const parsedTags = tagsInput
+      .split(",")
+      .map((tag) => tag.trim())
+      .filter(Boolean);
+
+    const nameChanged = updatedName.trim() !== caseName.trim();
+    const statusChanged = selectedStatus !== currentStatus;
+    const remarksChanged = (remarks || "").trim() !== (currentRemarks || "").trim();
+    const tagsChanged =
+      JSON.stringify(parsedTags) !== JSON.stringify(currentTags || []);
+
+    if (!nameChanged && !statusChanged && !remarksChanged && !tagsChanged) {
       Swal.fire({
         icon: "info",
         title: "No Changes",
-        text: "Please select a different status to update",
+        text: "Please update at least one field",
       });
       return;
     }
@@ -48,7 +66,12 @@ export const UpdateCaseStatusModal = ({
     try {
       await updateCaseMutation.mutateAsync({
         caseId,
-        data: { status: selectedStatus },
+        data: {
+          displayName: updatedName.trim(),
+          status: selectedStatus,
+          tags: parsedTags,
+          remarks: remarks.trim(),
+        },
       });
 
       Swal.fire({
@@ -95,7 +118,37 @@ export const UpdateCaseStatusModal = ({
               <label className="block mb-2 font-medium text-gray-700 text-sm">
                 Case
               </label>
-              <p className="text-accent text-sm">{caseName}</p>
+              <input
+                type="text"
+                value={updatedName}
+                onChange={(e) => setUpdatedName(e.target.value)}
+                className="px-3 py-2 border border-gray-300 focus:border-primary rounded-lg outline-none focus:ring-2 focus:ring-primary/20 w-full text-sm"
+              />
+            </div>
+
+            <div>
+              <label className="block mb-2 font-medium text-gray-700 text-sm">
+                Tags (comma separated)
+              </label>
+              <input
+                type="text"
+                value={tagsInput}
+                onChange={(e) => setTagsInput(e.target.value)}
+                placeholder="e.g. anxiety, cbt"
+                className="px-3 py-2 border border-gray-300 focus:border-primary rounded-lg outline-none focus:ring-2 focus:ring-primary/20 w-full text-sm"
+              />
+            </div>
+
+            <div>
+              <label className="block mb-2 font-medium text-gray-700 text-sm">
+                Remarks
+              </label>
+              <textarea
+                value={remarks}
+                onChange={(e) => setRemarks(e.target.value)}
+                rows={3}
+                className="px-3 py-2 border border-gray-300 focus:border-primary rounded-lg outline-none focus:ring-2 focus:ring-primary/20 w-full text-sm resize-none"
+              />
             </div>
 
             <div>

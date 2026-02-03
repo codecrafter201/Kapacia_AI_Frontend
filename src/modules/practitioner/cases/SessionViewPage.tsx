@@ -400,6 +400,7 @@ export const SessionViewPage = () => {
       <SessionHeader
         sessionNumber={displaySessionData.sessionNumber}
         date={displaySessionData.date}
+        sessionName={sessionData.sessionName || ""}
         caseId={caseId!}
         caseName={displaySessionData.case}
         statusLabel={statusInfo?.label || "Pending"}

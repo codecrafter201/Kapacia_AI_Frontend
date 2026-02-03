@@ -12,10 +12,10 @@ function LoginPage() {
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    
+
     try {
       const userData = await login(email, password);
-      
+
       // Route based on user role
       if (userData?.role === "admin") {
         navigate("/admin/dashboard");

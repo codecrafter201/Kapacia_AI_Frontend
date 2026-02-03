@@ -4,17 +4,25 @@ import { ChevronDown } from "lucide-react";
 import { toast } from "react-toastify";
 
 interface SessionDetailsFormProps {
+  sessionName: string;
+  onSessionNameChange: (name: string) => void;
   sessionDate: string;
   onSessionDateChange: (date: string) => void;
   sessionLanguage: string;
   onSessionLanguageChange: (language: string) => void;
+  remarks: string;
+  onRemarksChange: (remarks: string) => void;
 }
 
 export const SessionDetailsForm: React.FC<SessionDetailsFormProps> = ({
+  sessionName,
+  onSessionNameChange,
   sessionDate,
   onSessionDateChange,
   sessionLanguage,
   onSessionLanguageChange,
+  remarks,
+  onRemarksChange,
 }) => {
   const handleLanguageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newLanguage = e.target.value;
@@ -28,6 +36,18 @@ export const SessionDetailsForm: React.FC<SessionDetailsFormProps> = ({
     <Card className="p-6">
       <h2 className="text-secondary text-xl">Session Details</h2>
       <div className="gap-4 grid grid-cols-1 sm:grid-cols-2">
+        <div className="sm:col-span-2">
+          <label className="block mb-2 text-secondary text-sm">
+            Session Name
+          </label>
+          <Input
+            type="text"
+            value={sessionName}
+            onChange={(e) => onSessionNameChange(e.target.value)}
+            placeholder="e.g. Intake Session"
+            className="bg-primary/5 border-0 w-full text-accent text-sm"
+          />
+        </div>
         {/* Session Date */}
         <div>
           <label className="block mb-2 text-secondary text-sm">
@@ -57,6 +77,16 @@ export const SessionDetailsForm: React.FC<SessionDetailsFormProps> = ({
             </select>
             <ChevronDown className="top-1/2 right-3 absolute w-4 h-4 text-accent -translate-y-1/2 pointer-events-none" />
           </div>
+        </div>
+        <div className="sm:col-span-2">
+          <label className="block mb-2 text-secondary text-sm">Remarks</label>
+          <textarea
+            value={remarks}
+            onChange={(e) => onRemarksChange(e.target.value)}
+            placeholder="Add remarks"
+            rows={3}
+            className="bg-primary/5 px-3 py-2 rounded-lg w-full text-accent text-sm resize-none"
+          />
         </div>
       </div>
     </Card>

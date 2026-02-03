@@ -22,6 +22,7 @@ import {
   ChevronRight,
   File,
   Loader2,
+  Search,
 } from "lucide-react";
 import { TagsList } from "@/components/TagsList";
 
@@ -46,6 +47,7 @@ export const CaseDetailPage = () => {
   const navigate = useNavigate();
   const [timelineFilter, setTimelineFilter] = useState("");
   const [sessionFilter, setSessionFilter] = useState("");
+  const [sessionNameSearch, setSessionNameSearch] = useState("");
   const [loadAllEntries, setLoadAllEntries] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
@@ -65,6 +67,7 @@ export const CaseDetailPage = () => {
     {
       eventType: timelineFilter,
       sessionStatus: sessionFilter,
+      sessionNameSearch: sessionNameSearch,
       allEntries: loadAllEntries,
     },
   );
@@ -281,6 +284,13 @@ export const CaseDetailPage = () => {
         </Card>
       </div>
 
+      <Card className="p-6">
+        <h2 className="text-secondary text-xl">Remarks</h2>
+        <p className="mt-2 text-accent text-sm whitespace-pre-wrap">
+          {caseInfo.remarks?.trim() ? caseInfo.remarks : "No remarks"}
+        </p>
+      </Card>
+
       {/* Case Summary */}
       <Card className="bg-primary/5 p-6">
         <h2 className="text-secondary text-2xl">Case Summary</h2>
@@ -322,7 +332,17 @@ export const CaseDetailPage = () => {
       <div>
         <div className="flex sm:flex-row flex-col sm:justify-between sm:items-center gap-4 mb-4">
           <h2 className="text-secondary text-2xl">Timeline</h2>
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+            <div className="relative flex-1 sm:flex-initial sm:w-48">
+              <Search className="top-1/2 left-3 absolute w-4 h-4 text-gray-400 -translate-y-1/2" />
+              <input
+                type="text"
+                value={sessionNameSearch}
+                onChange={(e) => setSessionNameSearch(e.target.value)}
+                placeholder="Search sessions..."
+                className="px-3 py-2 pl-10 border border-border focus:border-blue-500 rounded-lg outline-none focus:ring-2 focus:ring-blue-200 w-full text-accent text-sm"
+              />
+            </div>
             <Button
               onClick={() => setIsGenerateSummaryModalOpen(true)}
               disabled={caseInfo.status !== "Active"}
@@ -450,6 +470,11 @@ export const CaseDetailPage = () => {
                               <Clock className="w-4 h-4" />
                               <span>
                                 Session #{entry.session.sessionNumber}
+                                {entry.session.sessionName && (
+                                  <span className="font-medium text-secondary ml-2">
+                                    ({entry.session.sessionName})
+                                  </span>
+                                )}
                               </span>
                             </div>
                             <div className="flex items-center gap-2 text-accent text-sm">

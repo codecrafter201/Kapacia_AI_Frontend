@@ -34,7 +34,7 @@ const PractitionerSideBar = () => {
         <div className="flex items-center gap-3 px-6 py-3 border-border/60 border-b">
           <Link to="/practitioner/dashboard" className="flex items-center">
             <img
-              src="/images/practitioner/dashlogo.jpg"
+              src="/images/practitioner/dashboardlogo.svg"
               alt="Kapacia AI"
               className="rounded-md w-full h-14"
             />

@@ -40,6 +40,8 @@ export const RecordSessionPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
 
+  const [sessionName, setSessionName] = useState("");
+  const [remarks, setRemarks] = useState("");
   const [sessionDate, setSessionDate] = useState(getCurrentDate());
   const [sessionLanguage, setSessionLanguage] = useState(
     user?.language || "english",
@@ -315,6 +317,8 @@ export const RecordSessionPage = () => {
       // Step 1: Create session in backend
       const sessionResponse = await createSessionMutation.mutateAsync({
         caseId,
+        sessionName: sessionName.trim(),
+        remarks: remarks.trim(),
         sessionDate: new Date(sessionDate).toISOString(),
         language: sessionLanguage,
         piiMaskingEnabled: piiMasking,
@@ -1194,6 +1198,8 @@ export const RecordSessionPage = () => {
 
       {/* Session Details */}
       <SessionDetailsForm
+        sessionName={sessionName}
+        onSessionNameChange={setSessionName}
         sessionDate={sessionDate}
         onSessionDateChange={setSessionDate}
         sessionLanguage={sessionLanguage}
@@ -1203,6 +1209,8 @@ export const RecordSessionPage = () => {
             setPiiMasking(false);
           }
         }}
+        remarks={remarks}
+        onRemarksChange={setRemarks}
       />
 
       {/* Patient Consent */}

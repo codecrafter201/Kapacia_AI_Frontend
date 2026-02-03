@@ -87,7 +87,8 @@ export const SettingPage = () => {
         if (profileResponse && profileResponse.data) {
           profileUpdated = true;
           // Update user context with the complete updated user from backend
-          const updatedUserData = profileResponse.data.user || profileResponse.data.userData;
+          const updatedUserData =
+            profileResponse.data.user || profileResponse.data.userData;
           if (updatedUserData) {
             setUser(updatedUserData);
           }
@@ -159,7 +160,7 @@ export const SettingPage = () => {
         setIsEditing(false);
       } else if (
         !profileUpdated &&
-        !passwordUpdated &&p
+        !passwordUpdated &&
         (formData.currentPassword || formData.newPassword)
       ) {
         // Only show error if password fields were filled but update failed
