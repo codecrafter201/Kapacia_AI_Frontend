@@ -93,6 +93,7 @@ export const SessionViewPage = () => {
         objective: "Objective information not yet available",
         assessment: "Assessment not yet available",
         plan: "Treatment plan not yet available",
+        summary: "",
       };
     }
 
@@ -103,6 +104,7 @@ export const SessionViewPage = () => {
         objective: latestSoapNote.content.objective || "",
         assessment: latestSoapNote.content.assessment || "",
         plan: latestSoapNote.content.plan || "",
+        summary: latestSoapNote.content.summary || "",
       };
     }
 
@@ -114,11 +116,13 @@ export const SessionViewPage = () => {
         objective: string;
         assessment: string;
         plan: string;
+        summary: string;
       } = {
         subjective: "",
         objective: "",
         assessment: "",
         plan: "",
+        summary: "",
       };
 
       let currentSection: keyof typeof result | "" = "";
@@ -141,6 +145,10 @@ export const SessionViewPage = () => {
           if (currentSection) result[currentSection] = currentText.trim();
           currentSection = "plan";
           currentText = "";
+        } else if (line.includes("Summary:") || line.includes("SUMMARY:")) {
+          if (currentSection) result[currentSection] = currentText.trim();
+          currentSection = "summary";
+          currentText = "";
         } else if (currentSection) {
           currentText += (currentText ? "\n" : "") + line;
         }
@@ -156,6 +164,7 @@ export const SessionViewPage = () => {
       objective: "Objective information not yet available",
       assessment: "Assessment not yet available",
       plan: "Treatment plan not yet available",
+      summary: "",
     };
   };
 
