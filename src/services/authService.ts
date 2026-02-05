@@ -19,13 +19,14 @@ interface UserResponse {
 
 interface BackendErrorResponse {
   error: string;
+  message: string;
   code: number;
 }
 
 // Login user
 export const loginUser = async (
   email: string,
-  password: string
+  password: string,
 ): Promise<UserData> => {
   try {
     const response = await axios.post<LoginResponse>(
@@ -35,7 +36,7 @@ export const loginUser = async (
         headers: {
           "Content-Type": "application/json",
         },
-      }
+      },
     );
 
     // Backend returns: { success, message, userMessage, userData, timestamp }
@@ -87,7 +88,7 @@ export const fetchCurrentUser = async (token: string): Promise<UserData> => {
           "Content-Type": "application/json",
           "x-access-token": token,
         },
-      }
+      },
     );
 
     // Backend returns: { success, message, userData, timestamp }
@@ -132,7 +133,7 @@ export const fetchCurrentUser = async (token: string): Promise<UserData> => {
 
 // Forgot password - request OTP
 export const forgotPassword = async (
-  email: string
+  email: string,
 ): Promise<{ message: string }> => {
   try {
     const response = await axios.post(
@@ -142,7 +143,7 @@ export const forgotPassword = async (
         headers: {
           "Content-Type": "application/json",
         },
-      }
+      },
     );
 
     return response.data;
@@ -183,7 +184,7 @@ export const forgotPassword = async (
 // Verify OTP
 export const verifyOtp = async (
   email: string,
-  otp: string
+  otp: string,
 ): Promise<{ message: string }> => {
   try {
     const response = await axios.post(
@@ -193,41 +194,41 @@ export const verifyOtp = async (
         headers: {
           "Content-Type": "application/json",
         },
-      }
+      },
     );
 
     return response.data;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Verify OTP API error:", error);
 
-    if (axios.isAxiosError(error)) {
-      const axiosError = error as AxiosError<BackendErrorResponse>;
+    let errorMessage = "Failed to verify OTP. Please try again.";
 
-      if (axiosError.response?.data?.error) {
-        throw new Error(axiosError.response.data.error);
+    // Handle axios error
+    if (error.response?.data) {
+      const data = error.response.data;
+      if (typeof data.message === "string") {
+        errorMessage = data.message;
+      } else if (
+        data.error?.message &&
+        typeof data.error.message === "string"
+      ) {
+        errorMessage = data.error.message;
+      } else if (typeof data.error === "string") {
+        errorMessage = data.error;
       }
-
-      if (axiosError.response) {
-        throw new Error(`Verification failed: ${axiosError.response.status}`);
-      }
-
-      if (axiosError.request) {
-        throw new Error(
-          "No response from server. Please check your connection."
-        );
-      }
+    } else if (error.message && typeof error.message === "string") {
+      errorMessage = error.message;
     }
 
-    const message =
-      error instanceof Error ? error.message : "Failed to verify OTP";
-    throw new Error(message);
+    const err = new Error(errorMessage);
+    throw err;
   }
 };
 
 // Reset password
 export const resetPassword = async (
   email: string,
-  password: string
+  password: string,
 ): Promise<{ message: string }> => {
   try {
     const response = await axios.post(
@@ -237,7 +238,7 @@ export const resetPassword = async (
         headers: {
           "Content-Type": "application/json",
         },
-      }
+      },
     );
 
     return response.data;
@@ -245,21 +246,28 @@ export const resetPassword = async (
     console.error("Reset password API error:", error);
 
     if (axios.isAxiosError(error)) {
-      const axiosError = error as AxiosError<BackendErrorResponse>;
+      const axiosError = error as AxiosError<any>;
+      const errorData = axiosError.response?.data;
 
-      if (axiosError.response?.data?.error) {
-        throw new Error(axiosError.response.data.error);
+      // Try multiple error extraction strategies
+      let errorMessage = "Failed to reset password. Please try again.";
+
+      if (errorData) {
+        // Strategy 1: Check for error.message (nested error object)
+        if (errorData.error?.message) {
+          errorMessage = errorData.error.message;
+        }
+        // Strategy 2: Check for direct message field
+        else if (errorData.message) {
+          errorMessage = errorData.message;
+        }
+        // Strategy 3: Check for error string
+        else if (typeof errorData.error === "string") {
+          errorMessage = errorData.error;
+        }
       }
 
-      if (axiosError.response) {
-        throw new Error(`Reset failed: ${axiosError.response.status}`);
-      }
-
-      if (axiosError.request) {
-        throw new Error(
-          "No response from server. Please check your connection."
-        );
-      }
+      throw new Error(errorMessage);
     }
 
     const message =

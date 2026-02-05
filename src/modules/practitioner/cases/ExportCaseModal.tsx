@@ -53,10 +53,6 @@ export const ExportCaseModal = ({
       setError("Missing caseId");
       return;
     }
-    if (exportFormat !== "json") {
-      setError("Only JSON export is available right now.");
-      return;
-    }
 
     const exportData: ExportData = {
       exportType,
@@ -82,7 +78,8 @@ export const ExportCaseModal = ({
 
       const blob = response.data;
       const safeName = (caseName || "case").replace(/[^a-zA-Z0-9-_ ]/g, "_");
-      const filename = `${safeName || "case"}.json`;
+      const extension = exportFormat === "pdf" ? "pdf" : "json";
+      const filename = `${safeName || "case"}.${extension}`;
       const url = window.URL.createObjectURL(blob);
 
       const link = document.createElement("a");
@@ -284,7 +281,7 @@ export const ExportCaseModal = ({
           <div className="p-4 border border-border rounded-lg">
             <h3 className="mb-3 text-primary text-sm">EXPORT FORMAT</h3>
             <div className="space-y-2">
-              {/* <label className="flex items-center gap-2 cursor-pointer">
+              <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="radio"
                   checked={exportFormat === "pdf"}
@@ -292,7 +289,7 @@ export const ExportCaseModal = ({
                   className="w-4 h-4 text-primary"
                 />
                 <span className="text-secondary text-sm">PDF Report</span>
-              </label> */}
+              </label>
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="radio"

@@ -114,9 +114,16 @@ function OtpVerifyPage() {
       toast.success(response.message || "OTP verified successfully!");
       // Navigate to reset password page with email in state
       navigate("/reset-password", { state: { email }, replace: true });
-    } catch (error) {
+    } catch (error: any) {
       console.error("OTP verification failed:", error);
-      const message = error instanceof Error ? error.message : "OTP verification failed. Please try again.";
+
+      let message = "OTP verification failed. Please try again.";
+
+      // Safely extract error message
+      if (error && typeof error.message === "string" && error.message) {
+        message = error.message;
+      }
+
       toast.error(message);
       setOtp(["", "", "", "", "", ""]);
       inputRefs.current[0]?.focus();
@@ -137,9 +144,16 @@ function OtpVerifyPage() {
       setOtp(["", "", "", "", "", ""]);
       inputRefs.current[0]?.focus();
       toast.success(response.message || "OTP has been resent to your email.");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Resend OTP failed:", error);
-      const message = error instanceof Error ? error.message : "Failed to resend OTP. Please try again.";
+
+      let message = "Failed to resend OTP. Please try again.";
+
+      // Safely extract error message
+      if (error && typeof error.message === "string" && error.message) {
+        message = error.message;
+      }
+
       toast.error(message);
     } finally {
       setIsResending(false);
@@ -168,7 +182,9 @@ function OtpVerifyPage() {
       <div className="relative flex flex-col justify-center items-center">
         <div className="top-0 left-0 absolute mt-4 px-8 py-4">
           <button
-            onClick={() => toast.info("Please complete the verification process.")}
+            onClick={() =>
+              toast.info("Please complete the verification process.")
+            }
             className="font-medium text-[#273058] hover:underline"
           >
             <ChevronLeft className="inline mr-2 mb-1 w-5 h-5" />

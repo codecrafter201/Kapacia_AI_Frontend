@@ -330,10 +330,10 @@ export const CaseDetailPage = () => {
 
       {/* Timeline */}
       <div>
-        <div className="flex sm:flex-row flex-col sm:justify-between sm:items-center gap-4 mb-4">
+        <div className="flex lg:flex-row flex-col sm:justify-between lg:items-center gap-4 mb-4">
           <h2 className="text-secondary text-2xl">Timeline</h2>
-          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-            <div className="relative flex-1 sm:flex-initial sm:w-48">
+          <div className="flex md:flex-row flex-col md:flex-wrap gap-2 w-full">
+            <div className="relative md:flex-1 w-full md:min-w-[200px]">
               <Search className="top-1/2 left-3 absolute w-4 h-4 text-gray-400 -translate-y-1/2" />
               <input
                 type="text"
@@ -346,7 +346,7 @@ export const CaseDetailPage = () => {
             <Button
               onClick={() => setIsGenerateSummaryModalOpen(true)}
               disabled={caseInfo.status !== "Active"}
-              className="disabled:opacity-50 text-white disabled:cursor-not-allowed"
+              className="disabled:opacity-50 w-full md:w-auto text-white whitespace-nowrap disabled:cursor-not-allowed"
               title={
                 caseInfo.status !== "Active"
                   ? `Cannot generate summary - case status is ${caseInfo.status}`
@@ -355,11 +355,11 @@ export const CaseDetailPage = () => {
             >
               Generate Timelines Summary
             </Button>
-            <div className="relative">
+            <div className="relative md:flex-1 w-full md:min-w-[150px]">
               <select
                 value={timelineFilter}
                 onChange={(e) => setTimelineFilter(e.target.value)}
-                className="px-3 py-2 pr-8 border border-border focus:border-blue-500 rounded-lg outline-none focus:ring-2 focus:ring-blue-200 text-accent text-sm appearance-none"
+                className="px-3 py-2 pr-8 border border-border focus:border-blue-500 rounded-lg outline-none focus:ring-2 focus:ring-blue-200 w-full text-accent text-sm appearance-none"
               >
                 <option value="">All Types</option>
                 <option value="timeline_summary">Summary</option>
@@ -368,11 +368,11 @@ export const CaseDetailPage = () => {
               </select>
               <ChevronDown className="top-1/2 right-2 absolute w-4 h-4 text-accent -translate-y-1/2 pointer-events-none" />
             </div>
-            <div className="relative">
+            <div className="relative md:flex-1 w-full md:min-w-[150px]">
               <select
                 value={sessionFilter}
                 onChange={(e) => setSessionFilter(e.target.value)}
-                className="px-3 py-2 pr-8 border border-border focus:border-blue-500 rounded-lg outline-none focus:ring-2 focus:ring-blue-200 text-accent text-sm appearance-none"
+                className="px-3 py-2 pr-8 border border-border focus:border-blue-500 rounded-lg outline-none focus:ring-2 focus:ring-blue-200 w-full text-accent text-sm appearance-none"
               >
                 <option value="">All Sessions</option>
                 <option value="Created">Created</option>
@@ -471,7 +471,7 @@ export const CaseDetailPage = () => {
                               <span>
                                 Session #{entry.session.sessionNumber}
                                 {entry.session.sessionName && (
-                                  <span className="font-medium text-secondary ml-2">
+                                  <span className="ml-2 font-medium text-secondary">
                                     ({entry.session.sessionName})
                                   </span>
                                 )}
