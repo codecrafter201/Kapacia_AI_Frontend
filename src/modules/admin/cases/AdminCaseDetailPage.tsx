@@ -145,7 +145,7 @@ export const AdminCaseDetailPage = () => {
             onClick={() => setIsUpdateStatusModalOpen(true)}
             className="flex items-center text-white"
           >
-            Update Case Status
+            Update Case
           </Button>
         </div>
       </Card>
