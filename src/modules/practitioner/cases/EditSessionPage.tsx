@@ -420,24 +420,37 @@ export const EditSessionPage = () => {
             )}
 
             <div className="flex sm:flex-row flex-col sm:items-center gap-2 mt-3">
-              <div className="flex items-center bg-[#F2933911] p-2 rounded-lg text-[#F29339] text-sm">
-                <span className="">⚠</span>
-                <p className="ml-1 text-xs">
-                  {latestSoapNote
-                    ? "Editing will create a new version. Previous versions are preserved."
-                    : "You can manually create a SOAP note or use AI to generate one from the transcript."}
-                </p>
-              </div>
-
-              {latestSoapNote?.status === "Approved" ? (
-                <div className="flex items-center bg-red-50 p-2 border border-red-200 rounded-lg text-red-600 text-sm">
-                  <span className="">🔒</span>
+              {latestSoapNote?.status === "Approved" && (
+                <div className="flex items-center bg-amber-50 p-2 border border-amber-200 rounded-lg text-amber-700 text-sm">
+                  <span className="">⚠</span>
                   <p className="ml-1 text-xs">
-                    This note is approved and locked. You cannot make changes
-                    now.
+                    This note is approved. Editing will change the session
+                    status to "Pending Approval" and require re-approval.
                   </p>
                 </div>
-              ) : !latestSoapNote ? (
+              )}
+
+              {latestSoapNote?.status !== "Approved" && latestSoapNote && (
+                <div className="flex items-center bg-[#F2933911] p-2 rounded-lg text-[#F29339] text-sm">
+                  <span className="">⚠</span>
+                  <p className="ml-1 text-xs">
+                    Editing will create a new version. Previous versions are
+                    preserved.
+                  </p>
+                </div>
+              )}
+
+              {!latestSoapNote && (
+                <div className="flex items-center bg-[#F2933911] p-2 rounded-lg text-[#F29339] text-sm">
+                  <span className="">⚠</span>
+                  <p className="ml-1 text-xs">
+                    You can manually create a Session Summary note or use AI to
+                    generate one from the transcript.
+                  </p>
+                </div>
+              )}
+
+              {!latestSoapNote ? (
                 <div className="flex items-center bg-blue-50 p-2 border border-blue-200 rounded-lg text-blue-600 text-sm">
                   <span className="">💡</span>
                   <p className="ml-1 text-xs">
@@ -445,15 +458,7 @@ export const EditSessionPage = () => {
                     with AI" to create an AI-generated SOAP note.
                   </p>
                 </div>
-              ) : (
-                <div className="flex items-center bg-[#F2933911] p-2 rounded-lg text-[#F29339] text-sm">
-                  <span className="">⚠</span>
-                  <p className="ml-1 text-xs">
-                    Note: Saving will update the current version. You can
-                    approve after saving.
-                  </p>
-                </div>
-              )}
+              ) : null}
             </div>
           </Card>
 
@@ -467,29 +472,27 @@ export const EditSessionPage = () => {
               {showTranscript ? "Hide" : "View"} Transcript
             </button>
 
-            {latestSoapNote?.status !== "Approved" && (
-              <button
-                onClick={handleRegenerateWithAI}
-                disabled={
-                  loadingTranscript ||
-                  !hasTranscriptData ||
-                  generateSoapNoteMutation.isPending
-                }
-                className="flex items-center gap-2 disabled:opacity-50 text-accent hover:text-secondary cursor-pointer disabled:cursor-not-allowed"
-              >
-                {generateSoapNoteMutation.isPending ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Regenerating...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="w-4 h-4" />
-                    Regenerate with AI
-                  </>
-                )}
-              </button>
-            )}
+            <button
+              onClick={handleRegenerateWithAI}
+              disabled={
+                loadingTranscript ||
+                !hasTranscriptData ||
+                generateSoapNoteMutation.isPending
+              }
+              className="flex items-center gap-2 disabled:opacity-50 text-accent hover:text-secondary cursor-pointer disabled:cursor-not-allowed"
+            >
+              {generateSoapNoteMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Regenerating...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-4 h-4" />
+                  Regenerate with AI
+                </>
+              )}
+            </button>
           </div>
 
           {/* Transcript Section */}
@@ -669,11 +672,10 @@ export const EditSessionPage = () => {
             </div>
 
             <textarea
-              disabled={latestSoapNote?.status === "Approved"}
               value={soapNote.summary}
               onChange={(e) => handleChange("summary", e.target.value)}
               placeholder="AI-generated summary will appear here..."
-              className="bg-primary/5 disabled:opacity-60 px-3 py-2 border border-primary/20 focus:border-primary/40 rounded-lg outline-none focus:ring-2 focus:ring-blue-200 w-full min-h-30 text-secondary text-sm disabled:cursor-not-allowed"
+              className="bg-primary/5 px-3 py-2 border border-primary/20 focus:border-primary/40 rounded-lg outline-none focus:ring-2 focus:ring-blue-200 w-full min-h-30 text-secondary text-sm"
             />
             <p className="mt-2 text-accent text-xs">
               Characters: {soapNote.summary.length} / {MAX_CHARS}
@@ -727,26 +729,26 @@ export const EditSessionPage = () => {
                 ? "Back to Session"
                 : "Cancel"}
             </Button>
-            {latestSoapNote?.status !== "Approved" && (
-              <Button
-                onClick={handleSave}
-                disabled={
-                  updateSoapNoteMutation.isPending ||
-                  generateSoapNoteMutation.isPending
-                }
-                className="text-white"
-              >
-                {updateSoapNoteMutation.isPending ||
-                generateSoapNoteMutation.isPending ? (
-                  <>
-                    <Loader2 className="mr-2 w-4 h-4 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  "Save Draft"
-                )}
-              </Button>
-            )}
+            {/* {latestSoapNote?.status !== "Approved" && ( */}
+            <Button
+              onClick={handleSave}
+              disabled={
+                updateSoapNoteMutation.isPending ||
+                generateSoapNoteMutation.isPending
+              }
+              className="text-white"
+            >
+              {updateSoapNoteMutation.isPending ||
+              generateSoapNoteMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 w-4 h-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                "Save Draft"
+              )}
+            </Button>
+            {/* // )} */}
           </div>
 
           {/* Bottom Note */}

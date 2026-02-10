@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Pagination } from "@/components/ui/Pagination";
 import { RotateCcw, Download, ChevronDown, Loader2, X } from "lucide-react";
-import { useAuditLogs } from "@/hooks/useAuditLogs";
+import { useAuditLogs, useMyAuditLogs } from "@/hooks/useAuditLogs";
 import {
   AuditLog,
   exportAuditLogs,
@@ -119,7 +119,7 @@ export const AuditPage = () => {
   // Fetch audit logs
   const selectedActionFilter = ACTION_FILTERS[actionType] || {};
 
-  const { data, isLoading, error } = useAuditLogs({
+  const { data, isLoading, error } = useMyAuditLogs({
     page: currentPage,
     limit: 50,
     action: selectedActionFilter.action,
@@ -190,7 +190,7 @@ export const AuditPage = () => {
       }
 
       // Call API to export (exports all matching logs, not just current page)
-      const blob = await exportAuditLogs("csv", filters);
+      const blob = await exportAuditLogs("csv", filters, true); // true = personal audit logs
 
       // Download the file
       const url = window.URL.createObjectURL(blob);

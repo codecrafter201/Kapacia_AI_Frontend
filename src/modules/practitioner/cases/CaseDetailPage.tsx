@@ -377,7 +377,7 @@ export const CaseDetailPage = () => {
                 <option value="">All Sessions</option>
                 <option value="Created">Created</option>
                 <option value="Recording">Recording</option>
-                <option value="Processing">Processing</option>
+                <option value="PendingApproval">PendingApproval</option>
                 {/* <option value="TranscriptionComplete">Transcription Complete</option> */}
                 {/* <option value="Ready">Ready</option> */}
                 <option value="Approved">Approved</option>
@@ -411,7 +411,11 @@ export const CaseDetailPage = () => {
                   const status = entry.session.status;
                   if (status === "Completed" || status === "Approved") {
                     return { label: "Approved", color: "green" };
-                  } else if (status === "Pending" || status === "Created") {
+                  } else if (
+                    status === "Pending" ||
+                    status === "PendingApproval" ||
+                    status === "Created"
+                  ) {
                     return { label: "Pending Review", color: "orange" };
                   }
                   return { label: status, color: "orange" };

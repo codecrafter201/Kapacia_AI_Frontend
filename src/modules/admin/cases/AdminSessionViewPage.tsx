@@ -709,7 +709,7 @@ export const AdminSessionViewPage = () => {
         <div className="flex sm:flex-row flex-col sm:justify-between sm:items-center gap-3 mb-4">
           <div>
             <h2 className="text-secondary text-lg sm:text-2xl">
-              SOAP Note Draft - Version {latestSoapNote?.version || "1"}
+              Summary Draft - Version {latestSoapNote?.version || "1"}
             </h2>
             <p className="text-accent text-sm">
               {latestSoapNote ? (
@@ -731,7 +731,7 @@ export const AdminSessionViewPage = () => {
                   </span>
                 </>
               ) : (
-                "No SOAP note generated yet"
+                "No Summary generated yet"
               )}
             </p>
           </div>
@@ -740,13 +740,11 @@ export const AdminSessionViewPage = () => {
         {loadingSoapNotes ? (
           <div className="flex justify-center items-center py-8">
             <Loader2 className="w-6 h-6 text-primary animate-spin" />
-            <span className="ml-2 text-accent">Loading SOAP note...</span>
+            <span className="ml-2 text-accent">Loading Summary...</span>
           </div>
         ) : soapError ? (
           <div className="bg-primary/5 p-4 border border-border/10 rounded-lg">
-            <p className="text-destructive text-sm">
-              ⚠️ Error loading SOAP note
-            </p>
+            <p className="text-destructive text-sm">⚠️ Error loading Summary</p>
           </div>
         ) : (
           <div className="space-y-4">
