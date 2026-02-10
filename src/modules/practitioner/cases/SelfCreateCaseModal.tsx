@@ -39,6 +39,16 @@ export const SelfCreateCaseModal = ({
       return;
     }
 
+    if (!remarks.trim()) {
+      toast.error("Please enter remarks");
+      return;
+    }
+
+    if (tags.length === 0) {
+      toast.error("Please add at least one tag");
+      return;
+    }
+
     try {
       await createSelfCase.mutateAsync({
         displayName: caseName.trim(),
@@ -103,7 +113,7 @@ export const SelfCreateCaseModal = ({
           </div>
 
           <div className="space-y-2">
-            <label className="text-primary text-sm">Tags (optional)</label>
+            <label className="text-primary text-sm">Tags</label>
             <div className="flex gap-2">
               <Input
                 value={tagInput}

@@ -27,8 +27,10 @@ export const ApprovalSection = ({
 
       <div className="space-y-3 mb-6">
         <label
-          className={`flex items-start gap-3 ${
-            isSessionApproved ? "cursor-not-allowed opacity-70" : "cursor-pointer"
+          className={`flex items-center gap-3 ${
+            isSessionApproved
+              ? "cursor-not-allowed opacity-70"
+              : "cursor-pointer"
           }`}
         >
           <input
@@ -40,27 +42,26 @@ export const ApprovalSection = ({
                 onApprovalChange(!isApprovalConfirmed);
               }
             }}
-            className="mt-1 rounded-full focus:ring-2 focus:ring-primary w-4 h-4 text-primary shrink-0"
+            className="rounded-full focus:ring-2 focus:ring-primary w-4 h-4 text-primary shrink-0"
           />
-          <div className="text-secondary text-sm">
-            <p className="mb-2">I confirm that I have:</p>
-            <ul className="space-y-1 pl-5 list-disc">
+          <p className="text-secondary text-sm">
+            I confirm that I have reviewed the note and the information is
+            accurate.
+          </p>
+          {/* <ul className="space-y-1 pl-5 list-disc">
               <li>Reviewed the transcript and it is accurate</li>
               <li>
                 Reviewed the SOAP note and it reflects my clinical assessment
               </li>
               <li>Verified all patient information is accurate</li>
-            </ul>
-          </div>
+            </ul> */}
         </label>
       </div>
 
       <div className="flex justify-start gap-3">
         <Button
           onClick={onApprove}
-          disabled={
-            !isApprovalConfirmed || isApproving || isSessionApproved
-          }
+          disabled={!isApprovalConfirmed || isApproving || isSessionApproved}
           className={`${
             !isApprovalConfirmed || isApproving || isSessionApproved
               ? "bg-primary/30 cursor-not-allowed"

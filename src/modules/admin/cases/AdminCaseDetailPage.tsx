@@ -276,7 +276,7 @@ export const AdminCaseDetailPage = () => {
                 <option value="">All Sessions</option>
                 <option value="Created">Created</option>
                 <option value="Recording">Recording</option>
-                <option value="Processing">Processing</option>
+                <option value="PendingApproval">PendingApproval</option>
                 <option value="Approved">Approved</option>
                 <option value="Rejected">Rejected</option>
               </select>

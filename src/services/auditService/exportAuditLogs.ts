@@ -7,6 +7,7 @@ import { AuditLogFilters } from "./auditService";
 export const exportAuditLogs = async (
   format: "csv" | "json" = "csv",
   filters: AuditLogFilters = {},
+  isMyLogs: boolean = false,
 ): Promise<Blob> => {
   const params = new URLSearchParams();
 
@@ -22,7 +23,10 @@ export const exportAuditLogs = async (
   if (filters.endDate) params.append("endDate", filters.endDate);
 
   const queryString = params.toString();
-  const url = `/audit-logs/export?${queryString}`;
+  // Use personal export endpoint if requested
+  const url = isMyLogs 
+    ? `/audit-logs/my-logs/export?${queryString}`
+    : `/audit-logs/export?${queryString}`;
 
   const response = await GetApiData(url, "GET");
   

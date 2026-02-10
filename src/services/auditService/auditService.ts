@@ -12,6 +12,7 @@ export interface AuditLogFilters {
   sessionId?: string;
   startDate?: string;
   endDate?: string;
+  isMyLogs?: boolean; // Flag to fetch current user's logs
 }
 
 export interface AuditLog {
@@ -59,6 +60,11 @@ export interface AuditLogsResponse {
 export const getAllAuditLogs = async (
   filters: AuditLogFilters = {},
 ): Promise<AuditLogsResponse> => {
+  // Use personal logs endpoint if requested
+  if (filters.isMyLogs) {
+    return getMyAuditLogs(filters);
+  }
+
   const params = new URLSearchParams();
 
   if (filters.page) params.append("page", filters.page.toString());
@@ -75,6 +81,30 @@ export const getAllAuditLogs = async (
 
   const queryString = params.toString();
   const url = queryString ? `/audit-logs?${queryString}` : "/audit-logs";
+
+  const response = await GetApiData(url, "GET");
+  return response.data.data;
+};
+
+/**
+ * Fetch current user's own audit logs
+ */
+export const getMyAuditLogs = async (
+  filters: AuditLogFilters = {},
+): Promise<AuditLogsResponse> => {
+  const params = new URLSearchParams();
+
+  if (filters.page) params.append("page", filters.page.toString());
+  if (filters.limit) params.append("limit", filters.limit.toString());
+  if (filters.action) params.append("action", filters.action);
+  if (filters.actionCategory)
+    params.append("actionCategory", filters.actionCategory);
+  if (filters.resourceType) params.append("resourceType", filters.resourceType);
+  if (filters.startDate) params.append("startDate", filters.startDate);
+  if (filters.endDate) params.append("endDate", filters.endDate);
+
+  const queryString = params.toString();
+  const url = queryString ? `/audit-logs/my-logs?${queryString}` : "/audit-logs/my-logs";
 
   const response = await GetApiData(url, "GET");
   return response.data.data;
