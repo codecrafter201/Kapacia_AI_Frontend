@@ -10,7 +10,6 @@ import { getFilePresignedUrl } from "@/services/fileService/fileService";
 import {
   ChevronLeft,
   Mic,
-  Upload,
   Download,
   Calendar,
   User,
@@ -25,6 +24,7 @@ import {
   Search,
 } from "lucide-react";
 import { TagsList } from "@/components/TagsList";
+import { UpdateCaseStatusModal } from "@/modules/admin/cases/UpdateCaseStatusModal";
 
 // interface TimelineEntry {
 //   id: string;
@@ -51,6 +51,7 @@ export const CaseDetailPage = () => {
   const [loadAllEntries, setLoadAllEntries] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [isUpdateStatusModalOpen, setIsUpdateStatusModalOpen] = useState(false);
   const [isGenerateSummaryModalOpen, setIsGenerateSummaryModalOpen] =
     useState(false);
 
@@ -123,24 +124,24 @@ export const CaseDetailPage = () => {
     }
   };
 
-  const handleDownloadFile = async (fileId?: string, fileName?: string) => {
-    if (!fileId) return;
-    try {
-      const response = await getFilePresignedUrl(fileId);
-      const url = response.data?.file?.url || response.data?.url;
-      if (!url) return;
+  // const handleDownloadFile = async (fileId?: string, fileName?: string) => {
+  //   if (!fileId) return;
+  //   try {
+  //     const response = await getFilePresignedUrl(fileId);
+  //     const url = response.data?.file?.url || response.data?.url;
+  //     if (!url) return;
 
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = fileName || "file";
-      link.target = "_blank";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    } catch (error) {
-      console.error("Failed to download file:", error);
-    }
-  };
+  //     const link = document.createElement("a");
+  //     link.href = url;
+  //     link.download = fileName || "file";
+  //     link.target = "_blank";
+  //     document.body.appendChild(link);
+  //     link.click();
+  //     document.body.removeChild(link);
+  //   } catch (error) {
+  //     console.error("Failed to download file:", error);
+  //   }
+  // };
 
   return (
     <div className="space-y-6 w-full">
@@ -209,6 +210,12 @@ export const CaseDetailPage = () => {
             >
               <Download className="w-4 h-4" />
               Export
+            </Button>
+            <Button
+              onClick={() => setIsUpdateStatusModalOpen(true)}
+              className="flex items-center text-white"
+            >
+              Update Case
             </Button>
           </div>
         </div>
@@ -658,6 +665,17 @@ export const CaseDetailPage = () => {
           console.log("Timeline summary generated:", summaryData);
           // Timeline and summaries will be auto-refreshed via query invalidation
         }}
+      />
+      {/* Update Case Status Modal */}
+      <UpdateCaseStatusModal
+        isOpen={isUpdateStatusModalOpen}
+        onClose={() => setIsUpdateStatusModalOpen(false)}
+        caseId={caseId}
+        currentStatus={caseInfo.status || "Active"}
+        // caseName={`${caseInfo.internalRef || ""} - ${caseInfo.displayName || ""}`}
+        caseName={`${caseInfo.displayName || "N/A"}`}
+        currentTags={caseInfo.tags || []}
+        currentRemarks={caseInfo.remarks || ""}
       />
     </div>
   );

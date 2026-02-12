@@ -50,7 +50,8 @@ export const UpdateCaseStatusModal = ({
 
     const nameChanged = updatedName.trim() !== caseName.trim();
     const statusChanged = selectedStatus !== currentStatus;
-    const remarksChanged = (remarks || "").trim() !== (currentRemarks || "").trim();
+    const remarksChanged =
+      (remarks || "").trim() !== (currentRemarks || "").trim();
     const tagsChanged =
       JSON.stringify(parsedTags) !== JSON.stringify(currentTags || []);
 
@@ -192,7 +193,7 @@ export const UpdateCaseStatusModal = ({
             <div className="bg-blue-50 p-3 rounded-lg">
               <p className="text-blue-800 text-sm">
                 <strong>Note:</strong> Changing the case status will affect the
-                practitioner's ability to record sessions and upload files.
+                ability to record sessions and upload files.
               </p>
             </div>
           </div>
