@@ -77,6 +77,7 @@ export const useCaseTimeline = (
     eventType?: string;
     sessionStatus?: string;
     startDate?: string;
+    sessionNameSearch?: string;
     endDate?: string;
     allEntries?: boolean;
   },
