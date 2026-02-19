@@ -16,8 +16,15 @@ export const createSelfCase = function (data) {
 // Get all cases (Admin only)
 export const getAllCases = function (params = {}) {
   const queryParams = new URLSearchParams();
+  if (params.search) queryParams.append("search", params.search);
   if (params.status) queryParams.append("status", params.status);
   if (params.assignedTo) queryParams.append("assignedTo", params.assignedTo);
+  if (params.tags) {
+    const tagsValue = Array.isArray(params.tags)
+      ? params.tags.join(",")
+      : params.tags;
+    queryParams.append("tags", tagsValue);
+  }
 
   const query = queryParams.toString();
   return GetApiData(`/case${query ? `?${query}` : ""}`, "GET", null, true);
@@ -29,6 +36,12 @@ export const getMyCases = function (params = {}) {
   if (params.search) queryParams.append("search", params.search);
   if (params.status) queryParams.append("status", params.status);
   if (params.sortBy) queryParams.append("sortBy", params.sortBy);
+  if (params.tags) {
+    const tagsValue = Array.isArray(params.tags)
+      ? params.tags.join(",")
+      : params.tags;
+    queryParams.append("tags", tagsValue);
+  }
   // Pagination / preview controls
   if (params.limit) queryParams.append("limit", params.limit);
   if (params.page) queryParams.append("page", params.page);

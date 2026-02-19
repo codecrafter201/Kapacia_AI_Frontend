@@ -43,7 +43,7 @@ export const EditSessionPage = () => {
 
   // Initialize SOAP note state with default placeholder text
   const [soapNote, setSoapNote] = useState({
-    subjective: "Patient information not yet available",
+    subjective: "Client's information not yet available",
     objective: "Objective information not yet available",
     assessment: "Assessment not yet available",
     plan: "Treatment plan not yet available",
@@ -186,20 +186,20 @@ export const EditSessionPage = () => {
 
       Swal.fire({
         title: "Success!",
-        text: "SOAP note draft saved successfully.",
+        text: "Summary note draft saved successfully.",
         icon: "success",
         confirmButtonColor: "#188aec",
       });
 
       navigate(`/practitioner/my-cases/${caseId}/session/${sessionId}`);
     } catch (error) {
-      console.error("Failed to save SOAP note:", error);
+      console.error("Failed to save summary note:", error);
       Swal.fire({
         title: "Error",
         text:
           error instanceof Error
             ? error.message
-            : "Failed to save SOAP note. Please try again.",
+            : "Failed to save summary note. Please try again.",
         icon: "error",
         confirmButtonColor: "#188aec",
       });
@@ -253,7 +253,7 @@ export const EditSessionPage = () => {
     if (!sessionId || !hasTranscriptData) {
       Swal.fire({
         title: "Error",
-        text: "Transcript not found. Cannot regenerate SOAP note.",
+        text: "Transcript not found. Cannot regenerate summary note.",
         icon: "error",
         confirmButtonColor: "#188aec",
       });
@@ -262,8 +262,8 @@ export const EditSessionPage = () => {
 
     // Show confirmation dialog
     const result = await Swal.fire({
-      title: "Regenerate SOAP Note?",
-      text: "This will generate a new SOAP note using AI. Your current unsaved changes will be lost.",
+      title: "Regenerate Summary Note?",
+      text: "This will generate a new Summary note using AI. Your current unsaved changes will be lost.",
       icon: "warning",
       showCancelButton: true,
       confirmButtonColor: "#188aec",
@@ -276,8 +276,8 @@ export const EditSessionPage = () => {
 
     // Show loading dialog
     Swal.fire({
-      title: "Regenerating SOAP Note...",
-      text: "Please wait while AI generates a new SOAP note from the transcript.",
+      title: "Regenerating Summary Note...",
+      text: "Please wait while AI generates a new summary note from the transcript.",
       icon: "info",
       allowOutsideClick: false,
       allowEscapeKey: false,
@@ -309,18 +309,18 @@ export const EditSessionPage = () => {
 
           Swal.fire({
             title: "Success!",
-            text: "SOAP note has been regenerated successfully.",
+            text: "Summary note has been regenerated successfully.",
             icon: "success",
             confirmButtonColor: "#188aec",
           });
         } catch (error) {
-          console.error("Failed to regenerate SOAP note:", error);
+          console.error("Failed to regenerate summary note:", error);
           Swal.fire({
             title: "Error",
             text:
               error instanceof Error
                 ? error.message
-                : "Failed to regenerate SOAP note. Please try again.",
+                : "Failed to regenerate summary note. Please try again.",
             icon: "error",
             confirmButtonColor: "#188aec",
           });
@@ -336,7 +336,7 @@ export const EditSessionPage = () => {
         <Card className="p-6">
           <div className="flex justify-center items-center py-12">
             <Loader2 className="w-8 h-8 text-primary animate-spin" />
-            <span className="ml-2 text-accent">Loading SOAP note...</span>
+            <span className="ml-2 text-accent">Loading Summary note...</span>
           </div>
         </Card>
       )}
@@ -345,7 +345,7 @@ export const EditSessionPage = () => {
       {soapError && !latestSoapNote && (
         <Card className="bg-amber-50 p-6 border border-amber-200">
           <p className="text-amber-700">
-            No SOAP note found yet. You can manually create one below or
+            No summary note found yet. You can manually create one below or
             generate it with AI.
           </p>
         </Card>
@@ -391,8 +391,8 @@ export const EditSessionPage = () => {
               <div className="flex items-center gap-3">
                 <h1 className="font-medium text-secondary text-lg sm:text-2xl">
                   {latestSoapNote
-                    ? `Edit SOAP Note - Version ${latestSoapNote.version}`
-                    : "Create SOAP Note"}
+                    ? `Edit Summary Note - Version ${latestSoapNote.version}`
+                    : "Create Summary Note"}
                 </h1>
                 {latestSoapNote && (
                   <span className="px-3 py-1 rounded-full bg-ring/10 text-ring text-xs">
@@ -455,7 +455,7 @@ export const EditSessionPage = () => {
                   <span className="">💡</span>
                   <p className="ml-1 text-xs">
                     You can edit the placeholder text above and use "Regenerate
-                    with AI" to create an AI-generated SOAP note.
+                    with AI" to create an AI-generated Summary note.
                   </p>
                 </div>
               ) : null}
@@ -556,7 +556,7 @@ export const EditSessionPage = () => {
               <h2 className="text-secondary text-lg sm:text-2xl">
                 S (SUBJECTIVE){" "}
                 <span className="text-accent text-sm">
-                  - What the patient reported
+                  - What the client reported
                 </span>
               </h2>
               {hasEdits.subjective && (
@@ -608,7 +608,7 @@ export const EditSessionPage = () => {
               <h2 className="text-secondary text-lg sm:text-2xl">
                 A (ASSESSMENT){" "}
                 <span className="text-accent text-sm">
-                  - Clinical analysis and diagnosis
+                  - Analysis and diagnosis
                 </span>
               </h2>
               {hasEdits.assessment && (

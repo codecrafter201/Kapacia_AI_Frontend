@@ -6,7 +6,6 @@ import {
   Pause,
   SkipBack,
   SkipForward,
-  Volume2,
   Loader2,
 } from "lucide-react";
 import { AudioStatus } from "@/components/AudioStatus";
@@ -35,8 +34,6 @@ export const AudioPlayer = ({
   const [currentTime, setCurrentTime] = useState("00:00:00");
   const [duration, setDuration] = useState("00:00:00");
   const [audioProgress, setAudioProgress] = useState(0);
-  const [volume, setVolume] = useState(0.75);
-  const [isMuted, setIsMuted] = useState(false);
 
   // Format time helper
   const formatTime = (seconds: number) => {
@@ -59,7 +56,6 @@ export const AudioPlayer = ({
     audio.src = audioUrl;
     audio.crossOrigin = "anonymous";
     audio.preload = "metadata";
-    audio.volume = volume;
 
     const handleLoadedMetadata = () => {
       setDuration(formatTime(audio.duration));
@@ -97,7 +93,7 @@ export const AudioPlayer = ({
       audio.removeEventListener("pause", handlePause);
       audio.removeEventListener("ended", handleEnded);
     };
-  }, [audioUrl, volume]);
+  }, [audioUrl]);
 
   const handlePlayPause = () => {
     const audio = audioRef.current;
@@ -122,33 +118,6 @@ export const AudioPlayer = ({
     const audio = audioRef.current;
     if (!audio) return;
     audio.currentTime = Math.min(audio.duration || 0, audio.currentTime + 10);
-  };
-
-  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newVolume = parseFloat(e.target.value);
-    setVolume(newVolume);
-
-    const audio = audioRef.current;
-    if (audio) {
-      audio.volume = newVolume;
-    }
-
-    if (newVolume > 0 && isMuted) {
-      setIsMuted(false);
-    }
-  };
-
-  const toggleMute = () => {
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    if (isMuted) {
-      audio.volume = volume;
-      setIsMuted(false);
-    } else {
-      audio.volume = 0;
-      setIsMuted(true);
-    }
   };
 
   const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -277,57 +246,6 @@ export const AudioPlayer = ({
             >
               <SkipForward className="w-5 h-5 text-accent" />
             </button>
-
-            <div className="flex items-center gap-2 ml-4">
-              <button
-                onClick={toggleMute}
-                disabled={!audioUrl}
-                className="hover:bg-gray-100 disabled:opacity-50 p-1 rounded transition-colors disabled:cursor-not-allowed"
-                aria-label={isMuted ? "Unmute" : "Mute"}
-              >
-                <Volume2
-                  className={`w-5 h-5 ${
-                    isMuted ? "text-gray-400" : "text-accent"
-                  }`}
-                />
-              </button>
-              <div className="relative w-24">
-                <input
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.01"
-                  value={isMuted ? 0 : volume}
-                  onChange={handleVolumeChange}
-                  disabled={!audioUrl}
-                  className="bg-gray-200 disabled:opacity-50 rounded-full w-full h-1 appearance-none cursor-pointer disabled:cursor-not-allowed volume-slider"
-                  style={{
-                    background: `linear-gradient(to right, #188aec 0%, #188aec ${
-                      (isMuted ? 0 : volume) * 100
-                    }%, #e5e7eb ${(isMuted ? 0 : volume) * 100}%, #e5e7eb 100%)`,
-                  }}
-                  aria-label="Volume control"
-                />
-                <style>{`
-                  .volume-slider::-webkit-slider-thumb {
-                    appearance: none;
-                    width: 12px;
-                    height: 12px;
-                    border-radius: 50%;
-                    background: #188aec;
-                    cursor: pointer;
-                  }
-                  .volume-slider::-moz-range-thumb {
-                    width: 12px;
-                    height: 12px;
-                    border-radius: 50%;
-                    background: #188aec;
-                    cursor: pointer;
-                    border: none;
-                  }
-                `}</style>
-              </div>
-            </div>
           </div>
         </>
       )}

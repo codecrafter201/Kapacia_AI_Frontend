@@ -2,8 +2,8 @@ import { useState, useMemo, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Pagination } from "@/components/ui/Pagination";
-import { RotateCcw, Download, ChevronDown, Loader2, X } from "lucide-react";
-import { useAuditLogs, useMyAuditLogs } from "@/hooks/useAuditLogs";
+import { Download, ChevronDown, Loader2, X } from "lucide-react";
+import { useMyAuditLogs } from "@/hooks/useAuditLogs";
 import {
   AuditLog,
   exportAuditLogs,
@@ -145,11 +145,11 @@ export const AuditPage = () => {
     setCurrentPage(1);
   };
 
-  const handleReset = () => {
-    setDateRange("");
-    setActionType("");
-    setCurrentPage(1);
-  };
+  // const handleReset = () => {
+  //   setDateRange("");
+  //   setActionType("");
+  //   setCurrentPage(1);
+  // };
 
   const handleOpenModal = (log: AuditLog) => {
     setSelectedLog(log);
@@ -273,10 +273,9 @@ export const AuditPage = () => {
               className="bg-white px-3 py-2 border border-border/60 focus:border-blue-500 rounded-lg outline-none focus:ring-2 focus:ring-blue-200 w-full text-gray-700 text-sm appearance-none"
             >
               <option value="">Action Type</option>
-              <option value="backupExport">Backups / Exports</option>
               <option value="login">Logins</option>
               <option value="sessionActivity">Session Activity</option>
-              <option value="soap">SOAP (Generate/Approve)</option>
+              <option value="soap">Summary (Generate/Approve)</option>
               <option value="timelineCreated">
                 Timeline Summaries Created
               </option>

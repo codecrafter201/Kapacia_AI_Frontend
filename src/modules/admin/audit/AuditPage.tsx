@@ -276,7 +276,7 @@ export const AuditPage = () => {
               <option value="backupExport">Backups / Exports</option>
               <option value="login">Logins</option>
               <option value="sessionActivity">Session Activity</option>
-              <option value="soap">SOAP (Generate/Approve)</option>
+              <option value="soap">Summary (Generate/Approve)</option>
               <option value="timelineCreated">
                 Timeline Summaries Created
               </option>

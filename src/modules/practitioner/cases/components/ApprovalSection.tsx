@@ -21,8 +21,8 @@ export const ApprovalSection = ({
     <Card className="p-6">
       <h2 className="text-secondary text-lg sm:text-2xl">Approval</h2>
       <p className="text-accent text-sm">
-        Please review the transcript and SOAP note carefully before approving.
-        Once approved, this becomes the official clinical record.
+        Please review the transcript and Summary note carefully before
+        approving. Once approved, this becomes the official record.
       </p>
 
       <div className="space-y-3 mb-6">
@@ -51,9 +51,9 @@ export const ApprovalSection = ({
           {/* <ul className="space-y-1 pl-5 list-disc">
               <li>Reviewed the transcript and it is accurate</li>
               <li>
-                Reviewed the SOAP note and it reflects my clinical assessment
+                Reviewed the Summary note and it reflects my assessment
               </li>
-              <li>Verified all patient information is accurate</li>
+              <li>Verified all Client's information is accurate</li>
             </ul> */}
         </label>
       </div>

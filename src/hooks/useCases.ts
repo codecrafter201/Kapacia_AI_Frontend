@@ -21,8 +21,10 @@ export const caseKeys = {
 
 // Get all cases (Admin)
 export const useAllCases = (params?: {
+  search?: string;
   status?: string;
   assignedTo?: string;
+  tags?: string[] | string;
 }) => {
   return useQuery({
     queryKey: [...caseKeys.allCases(), params],
@@ -38,6 +40,7 @@ export const useMyCases = (params?: {
   search?: string;
   status?: string;
   sortBy?: string;
+  tags?: string[] | string;
   limit?: string;
   page?: string;
 }) => {

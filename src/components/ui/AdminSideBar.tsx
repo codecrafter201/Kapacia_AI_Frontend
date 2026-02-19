@@ -47,7 +47,7 @@ const PractitionerSideBar = () => {
             {/* <div>
               <h1 className="font-bold text-[#03045E] text-2xl">Kapacia AI</h1>
               <p className="text-[#67B5F9] text-[12px]">
-                Clinical Documentation
+             Documentation
               </p>
             </div> */}
           </Link>
