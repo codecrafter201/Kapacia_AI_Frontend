@@ -336,7 +336,7 @@ export const ExportCaseModal = ({
                   className="rounded focus:ring-2 focus:ring-primary w-4 h-4 text-primary"
                 />
                 <span className="text-secondary text-sm">
-                  Include watermark: Confidential - For Clinical Use Only
+                  Include watermark: Confidential - For Use Only
                 </span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer">

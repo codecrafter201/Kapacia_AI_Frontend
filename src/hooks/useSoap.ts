@@ -48,7 +48,7 @@ export const useSoapNoteById = (soapId: string | undefined) => {
   return useQuery({
     queryKey: soapKeys.detail(soapId || ""),
     queryFn: async () => {
-      if (!soapId) throw new Error("SOAP note ID is required");
+      if (!soapId) throw new Error("Summary note ID is required");
       return await getSoapNoteById(soapId);
     },
     enabled: !!soapId,

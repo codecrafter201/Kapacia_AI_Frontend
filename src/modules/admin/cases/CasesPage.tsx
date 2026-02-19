@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { CreateCaseModal } from "./CreateCaseModal";
 import { useAllCases } from "@/hooks/useCases";
 import { useAllUsers } from "@/hooks/useUsers";
+import { useDebounce } from "@/hooks/useDebounce";
 
 export const AdminCasesPage = () => {
   const navigate = useNavigate();
@@ -17,6 +18,7 @@ export const AdminCasesPage = () => {
   const [assignedToFilter, setAssignedToFilter] = useState("");
   // const [sortBy, setSortBy] = useState("");
   const [isCreateCaseModalOpen, setIsCreateCaseModalOpen] = useState(false);
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
   // Fetch all users for filter dropdown
   const { data: usersData } = useAllUsers({ limit: 100 });
@@ -24,6 +26,7 @@ export const AdminCasesPage = () => {
 
   // Fetch all cases using React Query (Admin view)
   const { data, isLoading, isError, error } = useAllCases({
+    search: debouncedSearchQuery,
     status: statusFilter,
     assignedTo: assignedToFilter,
   });

@@ -133,11 +133,14 @@ export const useCreateSession = () => {
   return useMutation({
     mutationFn: async (data: {
       caseId: string;
+      sessionName: string;
+      remarks?: string;
       sessionDate?: string;
       language?: string;
       piiMaskingEnabled?: boolean;
       consentGiven: boolean;
       consentTimestamp?: string;
+      clientName?: string;
     }) => {
       const response = await createSession(data);
       return response.data;

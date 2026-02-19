@@ -89,7 +89,7 @@ export const SessionViewPage = () => {
   const parseSoapData = () => {
     if (!latestSoapNote) {
       return {
-        subjective: "Patient information not yet available",
+        subjective: "Client's information not yet available",
         objective: "Objective information not yet available",
         assessment: "Assessment not yet available",
         plan: "Treatment plan not yet available",
@@ -160,7 +160,7 @@ export const SessionViewPage = () => {
     }
 
     return {
-      subjective: "Patient information not yet available",
+      subjective: "Client's information not yet available",
       objective: "Objective information not yet available",
       assessment: "Assessment not yet available",
       plan: "Treatment plan not yet available",
@@ -297,7 +297,7 @@ export const SessionViewPage = () => {
           console.error("Failed to approve SOAP note:", soapError);
           Swal.fire({
             title: "Partial Success",
-            text: "Session was approved, but there was an issue approving the SOAP note. Please refresh and try again.",
+            text: "Session was approved, but there was an issue approving the Summary note. Please refresh and try again.",
             icon: "warning",
             confirmButtonColor: "#188aec",
           });
@@ -311,7 +311,7 @@ export const SessionViewPage = () => {
 
       Swal.fire({
         title: "Success!",
-        text: "Session and SOAP note have been approved successfully.",
+        text: "Session and Summary note have been approved successfully.",
         icon: "success",
         confirmButtonColor: "#188aec",
       });

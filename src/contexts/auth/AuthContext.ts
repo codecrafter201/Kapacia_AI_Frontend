@@ -10,6 +10,9 @@ export interface UserData {
   token: string;
   language: string;
   piiMasking: boolean;
+  customSoapPrompt: string;
+  supervisor?: string | null;
+  masterSoapPrompt?: string | null;
 }
 
 export interface AuthContextType {

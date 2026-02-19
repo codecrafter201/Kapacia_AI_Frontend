@@ -81,7 +81,7 @@ export const AdminSessionViewPage = () => {
   const parseSoapData = () => {
     if (!latestSoapNote) {
       return {
-        subjective: "Patient information not yet available",
+        subjective: "Client's information not yet available",
         objective: "Objective information not yet available",
         assessment: "Assessment not yet available",
         plan: "Treatment plan not yet available",
@@ -142,7 +142,7 @@ export const AdminSessionViewPage = () => {
     }
 
     return {
-      subjective: "Patient information not yet available",
+      subjective: "Client's information not yet available",
       objective: "Objective information not yet available",
       assessment: "Assessment not yet available",
       plan: "Treatment plan not yet available",

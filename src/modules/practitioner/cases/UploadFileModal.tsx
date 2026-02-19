@@ -268,7 +268,7 @@ export const UploadFileModal = ({
                   <textarea
                     value={fileDescription}
                     onChange={(e) => setFileDescription(e.target.value)}
-                    placeholder="Previous psychiatric evaluation from 2022. Patient diagnosed with GAD, treated with Sertraline (discontinued)..."
+                    placeholder="Previous psychiatric evaluation from 2022. Client's diagnosed with GAD, treated with Sertraline (discontinued)..."
                     className="bg-primary/5 px-3 py-2 border border-primary/20 focus:border-blue-500 rounded-lg outline-none focus:ring-2 focus:ring-blue-200 w-full min-h-25 text-gray-700 text-sm"
                   />
                 </div>

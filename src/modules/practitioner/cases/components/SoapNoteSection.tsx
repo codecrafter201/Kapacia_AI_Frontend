@@ -68,7 +68,7 @@ export const SoapNoteSection = ({
                 </span>
               </>
             ) : (
-              "No SOAP note generated yet"
+              "No Summary note generated yet"
             )}
           </p>
         </div>
@@ -87,11 +87,13 @@ export const SoapNoteSection = ({
       {isLoading ? (
         <div className="flex justify-center items-center py-8">
           <Loader2 className="w-6 h-6 text-primary animate-spin" />
-          <span className="ml-2 text-accent">Loading SOAP note...</span>
+          <span className="ml-2 text-accent">Loading Summary note...</span>
         </div>
       ) : hasError ? (
         <div className="bg-primary/5 p-4 border border-border/10 rounded-lg">
-          <p className="text-destructive text-sm">⚠️ Error loading SOAP note</p>
+          <p className="text-destructive text-sm">
+            ⚠️ Error loading Summary note
+          </p>
         </div>
       ) : (
         <div className="space-y-4">

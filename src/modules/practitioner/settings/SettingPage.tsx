@@ -37,7 +37,7 @@ export const SettingPage = () => {
   // Get admin's master prompt from user context (supervisor)
   const masterPrompt =
     user?.supervisor?.masterSoapPrompt ||
-    "Please provide a concise summary of the patient's overall condition, key concerns, and recommended actions based on the SOAP note above.";
+    "Please provide a concise summary of the client's overall condition, key concerns, and recommended actions based on the Summary note above.";
 
   // Update local state when user data changes
   useEffect(() => {
@@ -175,8 +175,8 @@ export const SettingPage = () => {
         // Clear password fields after successful save
         setFormData({
           ...formData,
-          pentPassword: "",
-          newPassword: "",
+          currentPassword: "",
+          password: "",
           confirmPassword: "",
         });
 
@@ -184,7 +184,7 @@ export const SettingPage = () => {
       } else if (
         !profileUpdated &&
         !passwordUpdated &&
-        (formData.currentPassword || formData.newPassword)
+        (formData.currentPassword || formData.password)
       ) {
         // Only show error if password fields were filled but update failed
         await Swal.fire({
@@ -344,8 +344,7 @@ export const SettingPage = () => {
             </div>
           </div>
         </div>
-        <div className="space-y-4">
-          {/* Role Information */}
+        {/* <div className="space-y-4">
           <div className="space-y-1 text-sm">
             <p className="text-accent">
               <span className="font-medium">Role:</span>{" "}
@@ -360,6 +359,47 @@ export const SettingPage = () => {
             <p className="text-accent">
               <span className="font-medium">Member Since:</span>{" "}
               <span className="text-accent-foreground">Jan 1, 2024</span>
+            </p>
+          </div>
+        </div> */}
+      </Card>
+
+      {/* Data Retention Policy */}
+      <Card className="bg-blue-50 p-6 border-blue-200">
+        <h2 className="font-medium text-secondary text-sm">
+          Data Retention Policy
+        </h2>
+        <div className="space-y-3 text-sm">
+          <div className="flex gap-3">
+            <div className="flex justify-center items-center bg-primary rounded-full w-4 h-4 font-bold text-white text-xs shrink-0">
+              •
+            </div>
+            <p className="text-secondary">
+              <span className="font-medium">
+                Audio recordings and transcripts:
+              </span>{" "}
+              Automatically deleted 7 days after approval of the corresponding
+              session or summary notes.
+            </p>
+          </div>
+          <div className="flex gap-3">
+            <div className="flex justify-center items-center bg-primary rounded-full w-4 h-4 font-bold text-white text-xs shrink-0">
+              •
+            </div>
+            <p className="text-secondary">
+              <span className="font-medium">Unapproved audio files:</span>{" "}
+              Automatically deleted 30 days from the date of the session if no
+              approval is recorded.
+            </p>
+          </div>
+          <div className="flex gap-3">
+            <div className="flex justify-center items-center bg-primary rounded-full w-4 h-4 font-bold text-white text-xs shrink-0">
+              •
+            </div>
+            <p className="text-secondary">
+              <span className="font-medium">Structured records:</span> All
+              approved notes, summaries, case records, and session documentation
+              will remain securely retained.
             </p>
           </div>
         </div>
@@ -473,6 +513,10 @@ export const SettingPage = () => {
                   toast.error(
                     "PII Masking can only be enabled with English language",
                   );
+                  console.warn(
+                    "Attempted to enable PII Masking with non-English language",
+                    e,
+                  );
                   return;
                 }
                 setPiiMasking(true);
@@ -508,14 +552,14 @@ export const SettingPage = () => {
           <div className="group relative">
             <HelpCircle className="w-4 h-4 text-gray-400 cursor-help" />
             <div className="-top-2 left-6 z-10 absolute bg-gray-800 opacity-0 group-hover:opacity-100 shadow-lg px-3 py-2 rounded-md w-64 text-white text-xs transition-opacity">
-              This prompt is used by AI to generate summaries for your SOAP
+              This prompt is used by AI to generate summaries for your Summary
               notes. You can use the master prompt set by your admin or
               customize your own.
             </div>
           </div>
         </div>
         <p className="mb-4 text-accent text-sm">
-          Configure how AI generates summaries for your SOAP notes. You can
+          Configure how AI generates summaries for your Summary notes. You can
           either use the master prompt or customize your own.
         </p>
 
@@ -589,7 +633,7 @@ export const SettingPage = () => {
               value={customPrompt}
               onChange={(e) => setCustomPrompt(e.target.value)}
               disabled={!isEditing}
-              placeholder="Enter your custom prompt for SOAP summary generation..."
+              placeholder="Enter your custom prompt for summary generation..."
               rows={4}
               className="disabled:opacity-50 px-3 py-2 border border-input rounded-md focus:ring-2 focus:ring-primary w-full text-sm resize-none disabled:cursor-not-allowed"
             />

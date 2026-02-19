@@ -289,7 +289,7 @@ export const SummaryPDFDocument = ({ summary }: { summary: any }) => {
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Included:</Text>
             <Text style={styles.infoValue}>
-              {summary.sessionCount} SOAP notes, {summary.fileCount} uploaded
+              {summary.sessionCount} Summary notes, {summary.fileCount} uploaded
               files
             </Text>
           </View>

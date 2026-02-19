@@ -2,12 +2,7 @@ import { useParams, Link } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useTimelineSummaryById } from "@/hooks/useTimelineSummary";
-import {
-  ChevronLeft,
-  Download,
-  Loader2,
-  AlertCircle,
-} from "lucide-react";
+import { ChevronLeft, Download, Loader2, AlertCircle } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkBreaks from "remark-breaks";
@@ -219,7 +214,7 @@ export const AdminSummaryDetailPage = () => {
                   </p>
                   <p>
                     <span className="font-medium">Included:</span>{" "}
-                    {summary.sessionCount} SOAP notes, {summary.fileCount}{" "}
+                    {summary.sessionCount} Summary notes, {summary.fileCount}{" "}
                     uploaded files
                   </p>
                   <p>

@@ -324,6 +324,7 @@ export const RecordSessionPage = () => {
         piiMaskingEnabled: piiMasking,
         consentGiven: consent,
         consentTimestamp: new Date(consentDate).toISOString(),
+        clientName: patientSignature.trim(),
       });
 
       const sessionId = sessionResponse.session._id;

@@ -27,7 +27,7 @@ export const PatientConsentForm: React.FC<PatientConsentFormProps> = ({
 }) => {
   return (
     <Card className="p-6">
-      <h2 className="text-secondary text-xl">Patient Consent</h2>
+      <h2 className="text-secondary text-xl">Client's Consent</h2>
       <div className="space-y-3 mb-4">
         <label className="flex items-start gap-3 cursor-pointer">
           <input
@@ -38,7 +38,7 @@ export const PatientConsentForm: React.FC<PatientConsentFormProps> = ({
           />
           <div className="text-secondary text-sm">
             <p className="mb-1">
-              Patient has been informed about session recording and consents to:
+              Client has been informed about session recording and consents to:
             </p>
             <ul className="space-y-1 pl-5 list-disc">
               <li>Audio recording</li>
@@ -77,7 +77,7 @@ export const PatientConsentForm: React.FC<PatientConsentFormProps> = ({
       <div className="gap-4 grid grid-cols-1 sm:grid-cols-2 pt-4">
         <div>
           <label className="block mb-2 text-secondary text-sm">
-            Patient Signature/Initials
+            Client's Name
           </label>
           <Input
             type="text"

@@ -302,7 +302,7 @@ export const SummaryDetailPage = () => {
                   </p>
                   <p>
                     <span className="font-medium">Included:</span>{" "}
-                    {summary.sessionCount} SOAP notes, {summary.fileCount}{" "}
+                    {summary.sessionCount} Summary notes, {summary.fileCount}{" "}
                     uploaded files
                   </p>
                   <p>

@@ -7,6 +7,7 @@ import { Search, ChevronDown, ChevronRight, Loader2, Plus } from "lucide-react";
 import { useMyCases } from "@/hooks/useCases";
 import { Button } from "@/components/ui/button";
 import { SelfCreateCaseModal } from "./SelfCreateCaseModal";
+import { useDebounce } from "@/hooks/useDebounce";
 
 export const CasesPage = () => {
   const navigate = useNavigate();
@@ -15,10 +16,11 @@ export const CasesPage = () => {
   const [statusFilter, setStatusFilter] = useState("");
   const [sortBy, setSortBy] = useState("");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
   // Fetch cases using React Query
   const { data, isLoading, isError, error } = useMyCases({
-    search: searchQuery,
+    search: debouncedSearchQuery,
     status: statusFilter,
     sortBy: sortBy,
   });

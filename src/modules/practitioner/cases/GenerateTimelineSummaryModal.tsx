@@ -95,18 +95,18 @@ export const GenerateTimelineSummaryModal = ({
 
         {/* Content */}
         <div className="space-y-6 p-6">
-          <div className="p-4 border-2 border-primary/20 bg-primary/5 rounded-lg">
+          <div className="bg-primary/5 p-4 border-2 border-primary/20 rounded-lg">
             <div className="flex items-start gap-3">
-              <Sparkles className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+              <Sparkles className="mt-0.5 w-5 h-5 text-primary shrink-0" />
               <div className="space-y-1">
                 <h3 className="font-medium text-secondary text-sm">
-                  AI-Powered Clinical Summary
+                  AI-Powered Summary
                 </h3>
                 <p className="text-accent text-xs">
-                  Our AI will analyze all sessions, transcripts, SOAP notes, and
-                  uploaded files within the selected period to generate a
-                  comprehensive clinical timeline summary with key insights,
-                  treatment progress, and recommendations.
+                  Our AI will analyze all sessions, transcripts, Summary notes,
+                  and uploaded files within the selected period to generate a
+                  comprehensive timeline summary with key insights, treatment
+                  progress, and recommendations.
                 </p>
               </div>
             </div>
@@ -119,7 +119,7 @@ export const GenerateTimelineSummaryModal = ({
             <div className="gap-4 grid grid-cols-1 sm:grid-cols-2">
               {/* Start Date */}
               <div className="space-y-2">
-                <label className="block font-medium text-accent-foreground text-sm">
+                <label className="block font-medium text-sm text-accent-foreground">
                   Start Date
                 </label>
                 <div className="relative">
@@ -128,14 +128,14 @@ export const GenerateTimelineSummaryModal = ({
                     type="date"
                     value={periodStart}
                     onChange={(e) => setPeriodStart(e.target.value)}
-                    className="px-3 pl-10 py-2 border border-border focus:border-primary rounded-lg w-full outline-none focus:ring-2 focus:ring-primary/20 text-secondary text-sm"
+                    className="px-3 py-2 pl-10 border border-border focus:border-primary rounded-lg outline-none focus:ring-2 focus:ring-primary/20 w-full text-secondary text-sm"
                   />
                 </div>
               </div>
 
               {/* End Date */}
               <div className="space-y-2">
-                <label className="block font-medium text-accent-foreground text-sm">
+                <label className="block font-medium text-sm text-accent-foreground">
                   End Date
                 </label>
                 <div className="relative">
@@ -144,7 +144,7 @@ export const GenerateTimelineSummaryModal = ({
                     type="date"
                     value={periodEnd}
                     onChange={(e) => setPeriodEnd(e.target.value)}
-                    className="px-3 pl-10 py-2 border border-border focus:border-primary rounded-lg w-full outline-none focus:ring-2 focus:ring-primary/20 text-secondary text-sm"
+                    className="px-3 py-2 pl-10 border border-border focus:border-primary rounded-lg outline-none focus:ring-2 focus:ring-primary/20 w-full text-secondary text-sm"
                   />
                 </div>
               </div>
@@ -152,49 +152,49 @@ export const GenerateTimelineSummaryModal = ({
 
             <p className="text-accent text-xs">
               Select the time period for which you want to generate the summary.
-              All sessions, files, and clinical data within this period will be
-              included in the AI analysis.
+              All sessions, files, and data within this period will be included
+              in the AI analysis.
             </p>
           </div>
 
           {/* What will be included */}
-          <div className="space-y-3 p-4 border border-border rounded-lg bg-gray-50">
+          <div className="space-y-3 bg-gray-50 p-4 border border-border rounded-lg">
             <h3 className="font-medium text-secondary text-sm">
               What's Included in the Summary
             </h3>
             <ul className="space-y-2 text-accent text-xs">
               <li className="flex items-start gap-2">
-                <span className="mt-1 bg-primary rounded-full w-1.5 h-1.5 shrink-0"></span>
+                <span className="bg-primary mt-1 rounded-full w-1.5 h-1.5 shrink-0"></span>
                 <span>
                   <strong>Session data:</strong> All therapy sessions within the
                   selected period
                 </span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="mt-1 bg-primary rounded-full w-1.5 h-1.5 shrink-0"></span>
+                <span className="bg-primary mt-1 rounded-full w-1.5 h-1.5 shrink-0"></span>
                 <span>
-                  <strong>Clinical notes:</strong> SOAP notes and session
+                  <strong>Summary notes:</strong> Summary notes and session
                   transcripts
                 </span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="mt-1 bg-primary rounded-full w-1.5 h-1.5 shrink-0"></span>
+                <span className="bg-primary mt-1 rounded-full w-1.5 h-1.5 shrink-0"></span>
                 <span>
-                  <strong>Documents:</strong> All uploaded files and clinical
+                  <strong>Documents:</strong> All uploaded files and audio
                   records
                 </span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="mt-1 bg-primary rounded-full w-1.5 h-1.5 shrink-0"></span>
+                <span className="bg-primary mt-1 rounded-full w-1.5 h-1.5 shrink-0"></span>
                 <span>
-                  <strong>Previous summaries:</strong> Context from prior timeline
-                  summaries
+                  <strong>Previous summaries:</strong> Context from prior
+                  timeline summaries
                 </span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="mt-1 bg-primary rounded-full w-1.5 h-1.5 shrink-0"></span>
+                <span className="bg-primary mt-1 rounded-full w-1.5 h-1.5 shrink-0"></span>
                 <span>
-                  <strong>AI Analysis:</strong> Clinical themes, treatment progress,
+                  <strong>AI Analysis:</strong> Themes, treatment progress,
                   protective/risk factors, and recommendations
                 </span>
               </li>
