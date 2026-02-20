@@ -11,7 +11,10 @@ import {
   useUpdateSession,
   useSessionAudioUrl,
 } from "@/hooks/useSessions";
-import { useTranscriptBySession } from "@/hooks/useTranscript";
+import {
+  useTranscriptBySession,
+  useRegenerateTranscript,
+} from "@/hooks/useTranscript";
 import { useSoapNotesBySession, useApproveSoapNote } from "@/hooks/useSoap";
 import { Loader2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -51,6 +54,7 @@ export const SessionViewPage = () => {
 
   const deleteSessionMutation = useDeleteSession();
   const updateSessionMutation = useUpdateSession();
+  const regenerateTranscriptMutation = useRegenerateTranscript();
 
   // Fetch transcript data
   const {
@@ -329,6 +333,45 @@ export const SessionViewPage = () => {
     }
   };
 
+  const handleRegenerateTranscript = async () => {
+    if (!sessionId) return;
+
+    const result = await Swal.fire({
+      title: "Regenerate Transcript?",
+      text: "This will regenerate transcript from the session audio and replace the current transcript.",
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonColor: "#188aec",
+      cancelButtonColor: "#6b7280",
+      confirmButtonText: "Regenerate",
+      cancelButtonText: "Cancel",
+    });
+
+    if (!result.isConfirmed) return;
+
+    try {
+      await regenerateTranscriptMutation.mutateAsync(sessionId);
+      await refetchTranscript();
+
+      Swal.fire({
+        title: "Success!",
+        text: "Transcript regenerated successfully.",
+        icon: "success",
+        confirmButtonColor: "#188aec",
+      });
+    } catch (error) {
+      Swal.fire({
+        title: "Error",
+        text:
+          error instanceof Error
+            ? error.message
+            : "Failed to regenerate transcript. Please try again.",
+        icon: "error",
+        confirmButtonColor: "#188aec",
+      });
+    }
+  };
+
   // Show loading state
   if (loadingSession) {
     return (
@@ -450,6 +493,8 @@ export const SessionViewPage = () => {
       <TranscriptionSection
         isLoading={loadingTranscript}
         transcriptData={transcriptData}
+        onRegenerate={handleRegenerateTranscript}
+        isRegenerating={regenerateTranscriptMutation.isPending}
       />
 
       {/* SOAP Note Section */}

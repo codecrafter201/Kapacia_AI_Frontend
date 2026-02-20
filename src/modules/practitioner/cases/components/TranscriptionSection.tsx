@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 
@@ -22,6 +23,8 @@ interface TranscriptData {
 interface TranscriptionSectionProps {
   isLoading: boolean;
   transcriptData: TranscriptData | null;
+  onRegenerate: () => void;
+  isRegenerating: boolean;
 }
 
 const formatTranscriptTimestamp = (timestamp: string | number) => {
@@ -54,10 +57,23 @@ const formatTranscriptTimestamp = (timestamp: string | number) => {
 export const TranscriptionSection = ({
   isLoading,
   transcriptData,
+  onRegenerate,
+  isRegenerating,
 }: TranscriptionSectionProps) => {
   return (
     <Card className="p-6">
-      <h2 className="text-secondary text-lg sm:text-2xl">Transcription</h2>
+      <div className="flex justify-between items-center">
+        <h2 className="text-secondary text-lg sm:text-2xl">Transcription</h2>
+        <Button
+          variant="link"
+          size="sm"
+          className="mt-2"
+          onClick={onRegenerate}
+          disabled={isRegenerating}
+        >
+          {isRegenerating ? "Regenerating..." : "Regenerate Transcript"}
+        </Button>
+      </div>
 
       {isLoading ? (
         <div className="flex justify-center items-center py-8">
@@ -69,7 +85,7 @@ export const TranscriptionSection = ({
           {/* Transcript Segments */}
           <div className="space-y-3 bg-primary/5 p-4 rounded-lg max-h-96 overflow-y-auto text-accent text-sm leading-relaxed">
             {transcriptData.segments && transcriptData.segments.length > 0 ? (
-                transcriptData.segments.map((segment, index: number) => (
+              transcriptData.segments.map((segment, index: number) => (
                 <div
                   key={segment.id || index}
                   className="pb-3 border-b last:border-b-0"
