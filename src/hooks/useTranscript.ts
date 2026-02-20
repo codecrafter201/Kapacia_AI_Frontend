@@ -5,6 +5,7 @@ import {
   getTranscriptById,
   updateTranscript,
   deleteTranscript,
+  regenerateTranscriptBySession,
   TranscriptData,
 } from "@/services/transcriptService/transcriptService";
 
@@ -102,6 +103,25 @@ export const useDeleteTranscript = () => {
       // Invalidate all transcript queries
       queryClient.invalidateQueries({
         queryKey: ["transcript"],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["transcripts"],
+      });
+    },
+  });
+};
+
+/**
+ * Hook to regenerate transcript from session audio
+ */
+export const useRegenerateTranscript = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (sessionId: string) => regenerateTranscriptBySession(sessionId),
+    onSuccess: (_response, sessionId) => {
+      queryClient.invalidateQueries({
+        queryKey: ["transcript", "session", sessionId],
       });
       queryClient.invalidateQueries({
         queryKey: ["transcripts"],

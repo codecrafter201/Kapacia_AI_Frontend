@@ -34,6 +34,10 @@ export const getTranscriptBySession = async (sessionId: string) => {
   return GetApiData(`/transcript/session/${sessionId}`, "GET");
 };
 
+export const regenerateTranscriptBySession = async (sessionId: string) => {
+  return GetApiData(`/transcript/session/${sessionId}/regenerate`, "POST");
+};
+
 export const getTranscriptById = async (transcriptId: string) => {
   return GetApiData(`/transcript/${transcriptId}`, "GET");
 };
