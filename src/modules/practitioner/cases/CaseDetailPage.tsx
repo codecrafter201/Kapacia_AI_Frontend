@@ -301,7 +301,7 @@ export const CaseDetailPage = () => {
       {/* Case Summary */}
       <Card className="bg-primary/5 p-6">
         <h2 className="text-secondary text-2xl">Case Summary</h2>
-        <div className="gap-6 sm:gap-8 grid grid-cols-2 sm:grid-cols-4">
+        <div className="gap-6 sm:gap-8 grid grid-cols-2 sm:grid-cols-3">
           <div>
             <p className="mb-1 text-accent text-sm">Total Sessions</p>
             <p className="text-secondary text-xl">
@@ -320,12 +320,12 @@ export const CaseDetailPage = () => {
                 : "N/A"}
             </p>
           </div>
-          <div>
+          {/* <div>
             <p className="mb-1 text-accent text-sm">Files Uploaded</p>
             <p className="text-secondary text-xl">
               {caseInfo.fileUploadsCount || 0}
             </p>
-          </div>
+          </div> */}
           <div>
             <p className="mb-1 text-accent text-sm">Notes Count</p>
             <p className="font-semibold text-ring text-lg">
@@ -371,7 +371,7 @@ export const CaseDetailPage = () => {
                 <option value="">All Types</option>
                 <option value="timeline_summary">Summary</option>
                 <option value="session">Sessions</option>
-                <option value="file_upload">Files</option>
+                {/* <option value="file_upload">Files</option> */}
               </select>
               <ChevronDown className="top-1/2 right-2 absolute w-4 h-4 text-accent -translate-y-1/2 pointer-events-none" />
             </div>
@@ -382,7 +382,7 @@ export const CaseDetailPage = () => {
                 className="px-3 py-2 pr-8 border border-border focus:border-blue-500 rounded-lg outline-none focus:ring-2 focus:ring-blue-200 w-full text-accent text-sm appearance-none"
               >
                 <option value="">All Sessions</option>
-                <option value="Created">Created</option>
+                {/* <option value="Created">Created</option> */}
                 <option value="Recording">Recording</option>
                 <option value="PendingApproval">PendingApproval</option>
                 {/* <option value="TranscriptionComplete">Transcription Complete</option> */}

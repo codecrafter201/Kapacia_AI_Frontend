@@ -18,14 +18,16 @@ const ACTION_FILTERS: Record<
 > = {
   // Backups / exports
   backupExport: { action: "EXPORT", actionCategory: "ADMIN" },
+  case: { actionCategory: "CASE" },
+  transcript: { actionCategory: "TRANSCRIPT" },
   // Auth logins
   login: { action: "LOGIN", actionCategory: "AUTH" },
   // Session lifecycle (create/upload/start/stop/update)
   sessionActivity: { actionCategory: "SESSION" },
   // SOAP generate/approve
-  soap: { actionCategory: "SOAP" },
+  soap: { actionCategory: "SUMMARY" },
   // Timeline summaries created
-  timelineCreated: { action: "CREATE", actionCategory: "TIMELINE_SUMMARY" },
+  timelineCreated: { actionCategory: "TIMELINE_SUMMARY" },
   // Data retention (schedule/delete)
   dataRetention: { actionCategory: "DATA_RETENTION" },
 };
@@ -273,13 +275,15 @@ export const AuditPage = () => {
               className="bg-white px-3 py-2 border border-border/60 focus:border-blue-500 rounded-lg outline-none focus:ring-2 focus:ring-blue-200 w-full text-gray-700 text-sm appearance-none"
             >
               <option value="">Action Type</option>
+              <option value="case">CASE</option>
               <option value="login">Logins</option>
               <option value="sessionActivity">Session Activity</option>
               <option value="soap">Summary (Generate/Approve)</option>
+              <option value="transcript">TRANSCRIPT</option>
               <option value="timelineCreated">
                 Timeline Summaries Created
               </option>
-              <option value="dataRetention">Data Retention</option>
+              {/* <option value="dataRetention">Data Retention</option> */}
             </select>
             <ChevronDown className="top-1/2 right-3 absolute w-4 h-4 text-gray-400 -translate-y-1/2 pointer-events-none" />
           </div>
