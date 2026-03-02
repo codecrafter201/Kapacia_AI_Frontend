@@ -102,9 +102,9 @@ export const RecordSessionPage = () => {
     sendAudioChunk,
   } = useTranscription();
 
-  const waveformRef = useRef<HTMLDivElement>(null) as React.RefObject<
-    HTMLDivElement | null
-  >;
+  const waveformRef = useRef<HTMLDivElement>(
+    null,
+  ) as React.RefObject<HTMLDivElement | null>;
   const waveSurferRef = useRef<WaveSurfer | null>(null);
   const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
   const recordedBlobRef = useRef<Blob | null>(null);
@@ -846,7 +846,9 @@ export const RecordSessionPage = () => {
               framework: "SOAP" as const,
               temperature: 0.2,
               maxTokens: 1200,
-              ...(transcriptTextForSoap && { transcriptText: transcriptTextForSoap }),
+              ...(transcriptTextForSoap && {
+                transcriptText: transcriptTextForSoap,
+              }),
             };
 
             const soapResult =
@@ -1214,19 +1216,6 @@ export const RecordSessionPage = () => {
         onRemarksChange={setRemarks}
       />
 
-      {/* Patient Consent */}
-      <PatientConsentForm
-        consent={consent}
-        onConsentChange={setConsent}
-        patientSignature={patientSignature}
-        onPatientSignatureChange={setPatientSignature}
-        consentDate={consentDate}
-        onConsentDateChange={setConsentDate}
-        captureMode={captureMode}
-        systemAudioConsent={systemAudioConsent}
-        onSystemAudioConsentChange={setSystemAudioConsent}
-      />
-
       {/* Advanced Options */}
       <AdvancedOptionsForm
         captureMode={captureMode}
@@ -1240,6 +1229,19 @@ export const RecordSessionPage = () => {
         sessionLanguage={sessionLanguage}
         piiMasking={piiMasking}
         onPiiMaskingChange={setPiiMasking}
+      />
+
+      {/* Patient Consent */}
+      <PatientConsentForm
+        consent={consent}
+        onConsentChange={setConsent}
+        patientSignature={patientSignature}
+        onPatientSignatureChange={setPatientSignature}
+        consentDate={consentDate}
+        onConsentDateChange={setConsentDate}
+        captureMode={captureMode}
+        systemAudioConsent={systemAudioConsent}
+        onSystemAudioConsentChange={setSystemAudioConsent}
       />
 
       {/* Audio Recording */}
