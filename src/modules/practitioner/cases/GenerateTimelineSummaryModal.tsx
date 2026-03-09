@@ -177,13 +177,13 @@ export const GenerateTimelineSummaryModal = ({
                   transcripts
                 </span>
               </li>
-              <li className="flex items-start gap-2">
+              {/* <li className="flex items-start gap-2">
                 <span className="bg-primary mt-1 rounded-full w-1.5 h-1.5 shrink-0"></span>
                 <span>
                   <strong>Documents:</strong> All uploaded files and audio
                   records
                 </span>
-              </li>
+              </li> */}
               <li className="flex items-start gap-2">
                 <span className="bg-primary mt-1 rounded-full w-1.5 h-1.5 shrink-0"></span>
                 <span>

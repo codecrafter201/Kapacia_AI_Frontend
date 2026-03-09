@@ -80,7 +80,7 @@ export const CasesPage = () => {
             <option value="Active">Active</option>
             <option value="Closed">Closed</option>
             <option value="OnHold">On Hold</option>
-            <option value="Unapporved">Un Approved</option>
+            <option value="Unapproved">Un Approved</option>
           </select>
           <ChevronDown className="top-1/2 right-3 absolute w-4 h-4 text-gray-400 -translate-y-1/2 pointer-events-none" />
         </div>

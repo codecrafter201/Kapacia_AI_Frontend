@@ -29,14 +29,14 @@ const PractitionerSideBar = () => {
     },
   ];
   return (
-    <aside className="flex flex-col justify-between bg-white border-border/60 border-r w-64 h-full">
+    <aside className="flex flex-col justify-between bg-white border-border/60 border-r w-full h-full">
       <div>
         <div className="flex items-center gap-3 px-6 py-3 border-border/60 border-b">
           <Link to="/practitioner/dashboard" className="flex items-center">
             <img
               src="/images/practitioner/dashboardlogo.svg"
               alt="Kapacia AI"
-              className="rounded-md w-full h-14"
+              className="rounded-md w-full h-11 md:h-14"
             />
             {/* <div>
               <h1 className="font-bold text-[#03045E] text-2xl">Kapacia AI</h1>

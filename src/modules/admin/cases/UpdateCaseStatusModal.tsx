@@ -193,7 +193,7 @@ export const UpdateCaseStatusModal = ({
             <div className="bg-blue-50 p-3 rounded-lg">
               <p className="text-blue-800 text-sm">
                 <strong>Note:</strong> Changing the case status will affect the
-                ability to record sessions and upload files.
+                ability to record sessions.
               </p>
             </div>
           </div>

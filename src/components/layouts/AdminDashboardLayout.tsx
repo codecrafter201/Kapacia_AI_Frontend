@@ -35,7 +35,7 @@ export function AdminDashboardLayout() {
           />
           {/* Sidebar */}
           <div
-            className={`lg:hidden top-0 bottom-0 left-0 z-50 fixed bg-white shadow-xl w-64 duration-300 ${
+            className={`lg:hidden top-0 bottom-0 left-0 z-50 fixed bg-white shadow-xl w-70 duration-300 ${
               isClosing
                 ? "animate-out slide-out-to-left"
                 : "animate-in slide-in-from-left"

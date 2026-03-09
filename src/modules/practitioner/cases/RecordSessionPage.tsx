@@ -319,11 +319,11 @@ export const RecordSessionPage = () => {
         caseId,
         sessionName: sessionName.trim(),
         remarks: remarks.trim(),
-        sessionDate: new Date(sessionDate).toISOString(),
+        sessionDate: sessionDate, // Send as YYYY-MM-DD string, backend will parse correctly
         language: sessionLanguage,
         piiMaskingEnabled: piiMasking,
         consentGiven: consent,
-        consentTimestamp: new Date(consentDate).toISOString(),
+        consentTimestamp: consentDate, // Send as YYYY-MM-DD string, backend will parse correctly
         clientName: patientSignature.trim(),
       });
 

@@ -48,7 +48,7 @@ export function PractictionerDashboardLayout() {
             >
               <X size={20} className="text-gray-700" />
             </button>
-            <div onClick={handleCloseSidebar} className="h-full">
+            <div onClick={handleCloseSidebar} className="">
               <PractitionerSideBar />
             </div>
           </div>
